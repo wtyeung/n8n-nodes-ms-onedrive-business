@@ -173,7 +173,7 @@ export const fileFields: INodeProperties[] = [
 		description: 'How to specify the file',
 	},
 	{
-		displayName: 'Level 1',
+		displayName: 'Level 1 Name or ID',
 		name: 'browseFolder1',
 		type: 'options',
 		typeOptions: {
@@ -189,10 +189,10 @@ export const fileFields: INodeProperties[] = [
 		},
 		default: '',
 		required: true,
-		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish',
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 2',
+		displayName: 'Level 2 Name or ID',
 		name: 'browseFolder2',
 		type: 'options',
 		typeOptions: {
@@ -206,11 +206,11 @@ export const fileFields: INodeProperties[] = [
 				fileSelection: ['browse'],
 			},
 		},
-		default: '__done__',
-		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 1 is a folder.',
+		default: '',
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 1 is a folder. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 3',
+		displayName: 'Level 3 Name or ID',
 		name: 'browseFolder3',
 		type: 'options',
 		typeOptions: {
@@ -224,11 +224,11 @@ export const fileFields: INodeProperties[] = [
 				fileSelection: ['browse'],
 			},
 		},
-		default: '__done__',
-		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 2 is a folder.',
+		default: '',
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 2 is a folder. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 4',
+		displayName: 'Level 4 Name or ID',
 		name: 'browseFolder4',
 		type: 'options',
 		typeOptions: {
@@ -242,11 +242,11 @@ export const fileFields: INodeProperties[] = [
 				fileSelection: ['browse'],
 			},
 		},
-		default: '__done__',
-		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 3 is a folder.',
+		default: '',
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 3 is a folder. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 5',
+		displayName: 'Level 5 Name or ID',
 		name: 'browseFolder5',
 		type: 'options',
 		typeOptions: {
@@ -260,8 +260,8 @@ export const fileFields: INodeProperties[] = [
 				fileSelection: ['browse'],
 			},
 		},
-		default: '__done__',
-		description: 'Select a 📄 file to finish. Only shown if Level 4 is a folder.',
+		default: '',
+		description: 'Select a 📄 file to finish. Only shown if Level 4 is a folder. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
 		displayName: 'File Path',
@@ -484,7 +484,7 @@ export const fileFields: INodeProperties[] = [
 		description: 'The folder where the file will be uploaded',
 	},
 	{
-		displayName: 'Level 1',
+		displayName: 'Level 1 Name or ID',
 		name: 'browseFolderF1',
 		type: 'options',
 		typeOptions: {
@@ -500,10 +500,10 @@ export const fileFields: INodeProperties[] = [
 		},
 		default: '',
 		required: true,
-		description: 'Select a \u25b6 folder to go deeper, or select the target folder directly',
+		description: 'Select a ▶ folder to go deeper, or select the target folder directly. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 2',
+		displayName: 'Level 2 Name or ID',
 		name: 'browseFolderF2',
 		type: 'options',
 		typeOptions: {
@@ -517,11 +517,11 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '__stop__',
-		description: 'Select a subfolder to go deeper, or leave as is to use Level 1 as the target',
+		default: '',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 1 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 3',
+		displayName: 'Level 3 Name or ID',
 		name: 'browseFolderF3',
 		type: 'options',
 		typeOptions: {
@@ -535,11 +535,11 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '__stop__',
-		description: 'Select a subfolder to go deeper, or leave as is to use Level 2 as the target',
+		default: '',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 2 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 4',
+		displayName: 'Level 4 Name or ID',
 		name: 'browseFolderF4',
 		type: 'options',
 		typeOptions: {
@@ -553,11 +553,11 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '__stop__',
-		description: 'Select a subfolder to go deeper, or leave as is to use Level 3 as the target',
+		default: '',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 3 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Level 5',
+		displayName: 'Level 5 Name or ID',
 		name: 'browseFolderF5',
 		type: 'options',
 		typeOptions: {
@@ -571,8 +571,8 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '__stop__',
-		description: 'Select the deepest target folder here, or leave as is to use Level 4 as the target',
+		default: '',
+		description: 'Select the deepest target folder here, or leave as is to use Level 4 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
 		displayName: 'File Name',

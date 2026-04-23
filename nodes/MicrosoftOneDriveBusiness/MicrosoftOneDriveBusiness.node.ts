@@ -40,7 +40,7 @@ async function getDriveEndpointForLoadOptions(this: ILoadOptionsFunctions): Prom
 		}
 
 		if (!siteId) {
-			throw new Error('Please select a SharePoint Site before loading folders.');
+			throw new NodeOperationError(this.getNode(), 'Please select a SharePoint Site before loading folders.');
 		}
 		driveEndpoint = `/sites/${siteId}/drive`;
 	}
@@ -60,6 +60,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 		defaults: {
 			name: 'MS OneDrive Business',
 		},
+		usableAsTool: true,
 		inputs: ['main'],
 		outputs: ['main'],
 		credentials: [
@@ -294,7 +295,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							});
 						}
 
-						let mimeType = (fileMetadata.file as IDataObject).mimeType as string || 'application/octet-stream';
+						const mimeType = (fileMetadata.file as IDataObject).mimeType as string || 'application/octet-stream';
 
 						// Download file content using the download URL (more reliable)
 						let fileBuffer: Buffer;
@@ -415,7 +416,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 									if (!value || value === '/') {
 										parentId = 'root';
 									} else {
-										let folderPath = value.replace(/^\/+/, '');
+										const folderPath = value.replace(/^\/+/, '');
 										const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
 										const folderMetadata = await microsoftApiRequest.call(
 											this,
@@ -510,7 +511,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 									if (!value || value === '/') {
 										parentId = 'root';
 									} else {
-										let folderPath = value.replace(/^\/+/, '');
+										const folderPath = value.replace(/^\/+/, '');
 										const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
 										const folderMetadata = await microsoftApiRequest.call(
 											this,
@@ -642,7 +643,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel2(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder1', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 1 first —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 1 First —', value: '__done__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -661,7 +662,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel3(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder2', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 2 first —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 2 First —', value: '__done__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -680,7 +681,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel4(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder3', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 3 first —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 3 First —', value: '__done__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -699,7 +700,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel5(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder4', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 4 first —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 4 First —', value: '__done__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -731,7 +732,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseFolderLevel2(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolderF1', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 1 first —', value: '__stop__' }];
+					return [{ name: '— Select a Folder at Level 1 First —', value: '__stop__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -740,7 +741,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
 				return [
-					{ name: '— use Level 1 folder —', value: '__stop__' },
+					{ name: '— Use Level 1 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
 						.filter((item) => item.folder)
 						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
@@ -750,7 +751,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseFolderLevel3(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolderF2', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 2 first —', value: '__stop__' }];
+					return [{ name: '— Select a Folder at Level 2 First —', value: '__stop__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -759,7 +760,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
 				return [
-					{ name: '— use Level 2 folder —', value: '__stop__' },
+					{ name: '— Use Level 2 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
 						.filter((item) => item.folder)
 						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
@@ -769,7 +770,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseFolderLevel4(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolderF3', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 3 first —', value: '__stop__' }];
+					return [{ name: '— Select a Folder at Level 3 First —', value: '__stop__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -778,7 +779,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
 				return [
-					{ name: '— use Level 3 folder —', value: '__stop__' },
+					{ name: '— Use Level 3 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
 						.filter((item) => item.folder)
 						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
@@ -788,7 +789,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseFolderLevel5(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolderF4', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— select a folder at Level 4 first —', value: '__stop__' }];
+					return [{ name: '— Select a Folder at Level 4 First —', value: '__stop__' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -797,7 +798,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
 				return [
-					{ name: '— use Level 4 folder —', value: '__stop__' },
+					{ name: '— Use Level 4 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
 						.filter((item) => item.folder)
 						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),

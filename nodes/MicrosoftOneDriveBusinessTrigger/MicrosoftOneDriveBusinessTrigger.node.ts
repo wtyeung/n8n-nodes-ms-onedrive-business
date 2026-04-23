@@ -139,6 +139,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				description: 'How often to check for changes (in seconds). Minimum: 60 seconds.',
 			},
 		],
+		usableAsTool: true,
 	};
 
 	webhookMethods = {
