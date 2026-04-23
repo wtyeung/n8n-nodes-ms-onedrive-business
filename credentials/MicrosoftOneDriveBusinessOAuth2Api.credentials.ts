@@ -7,6 +7,8 @@ export class MicrosoftOneDriveBusinessOAuth2Api implements ICredentialType {
 
 	displayName = 'MS OneDrive Business OAuth2 API';
 
+	icon = 'file:onedrive.svg' as const;
+
 	documentationUrl = 'https://github.com/timyeung/n8n-nodes-ms-onedrive-business';
 
 	properties: INodeProperties[] = [

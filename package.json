@@ -39,8 +39,7 @@
       "dist/credentials/MicrosoftOneDriveBusinessOAuth2Api.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/MicrosoftOneDriveBusiness/MicrosoftOneDriveBusiness.node.js",
-      "dist/nodes/MicrosoftOneDriveBusinessTrigger/MicrosoftOneDriveBusinessTrigger.node.js"
+      "dist/nodes/MicrosoftOneDriveBusiness/MicrosoftOneDriveBusiness.node.js"
     ]
   },
   "devDependencies": {
