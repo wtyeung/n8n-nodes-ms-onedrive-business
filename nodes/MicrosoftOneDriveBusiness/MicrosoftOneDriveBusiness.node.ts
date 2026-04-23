@@ -50,15 +50,15 @@ async function getDriveEndpointForLoadOptions(this: ILoadOptionsFunctions): Prom
 
 export class MicrosoftOneDriveBusiness implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Microsoft OneDrive Business',
+		displayName: 'MS OneDrive Business',
 		name: 'microsoftOneDriveBusiness',
 		icon: 'file:onedrive.svg',
 		group: ['input'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Access Microsoft OneDrive for Business and SharePoint',
+		description: 'Access MS OneDrive for Business and SharePoint',
 		defaults: {
-			name: 'Microsoft OneDrive Business',
+			name: 'MS OneDrive Business',
 		},
 		inputs: ['main'],
 		outputs: ['main'],

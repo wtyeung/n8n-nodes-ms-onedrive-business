@@ -5,7 +5,7 @@ export class MicrosoftOneDriveBusinessOAuth2Api implements ICredentialType {
 
 	extends = ['oAuth2Api'];
 
-	displayName = 'Microsoft OneDrive Business OAuth2 API';
+	displayName = 'MS OneDrive Business OAuth2 API';
 
 	documentationUrl = 'https://github.com/timyeung/n8n-nodes-ms-onedrive-business';
 

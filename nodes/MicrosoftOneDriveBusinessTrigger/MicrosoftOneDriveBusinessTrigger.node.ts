@@ -23,7 +23,7 @@ interface IStateData {
 
 export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Microsoft OneDrive Business Trigger',
+		displayName: 'MS OneDrive Business Trigger',
 		name: 'microsoftOneDriveBusinessTrigger',
 		icon: 'file:onedrive.svg',
 		group: ['trigger'],
