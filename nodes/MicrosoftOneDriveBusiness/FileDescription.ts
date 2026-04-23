@@ -154,6 +154,11 @@ export const fileFields: INodeProperties[] = [
 		},
 		options: [
 			{
+				name: 'Browse',
+				value: 'browse',
+				description: 'Browse folders step-by-step to find your file',
+			},
+			{
 				name: 'By Path',
 				value: 'path',
 				description: 'Specify file by path (e.g., /Documents/file.pdf)',
@@ -164,8 +169,99 @@ export const fileFields: INodeProperties[] = [
 				description: 'Specify file by its unique ID',
 			},
 		],
-		default: 'path',
+		default: 'browse',
 		description: 'How to specify the file',
+	},
+	{
+		displayName: 'Level 1',
+		name: 'browseFolder1',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseLevel1',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['delete', 'download', 'get', 'rename', 'share'],
+				fileSelection: ['browse'],
+			},
+		},
+		default: '',
+		required: true,
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish',
+	},
+	{
+		displayName: 'Level 2',
+		name: 'browseFolder2',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseLevel2',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['delete', 'download', 'get', 'rename', 'share'],
+				fileSelection: ['browse'],
+			},
+		},
+		default: '__done__',
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 1 is a folder.',
+	},
+	{
+		displayName: 'Level 3',
+		name: 'browseFolder3',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseLevel3',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1', 'browseFolder2'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['delete', 'download', 'get', 'rename', 'share'],
+				fileSelection: ['browse'],
+			},
+		},
+		default: '__done__',
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 2 is a folder.',
+	},
+	{
+		displayName: 'Level 4',
+		name: 'browseFolder4',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseLevel4',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1', 'browseFolder2', 'browseFolder3'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['delete', 'download', 'get', 'rename', 'share'],
+				fileSelection: ['browse'],
+			},
+		},
+		default: '__done__',
+		description: 'Select a 📁 folder to go deeper, or a 📄 file to finish. Only shown if Level 3 is a folder.',
+	},
+	{
+		displayName: 'Level 5',
+		name: 'browseFolder5',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseLevel5',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['delete', 'download', 'get', 'rename', 'share'],
+				fileSelection: ['browse'],
+			},
+		},
+		default: '__done__',
+		description: 'Select a 📄 file to finish. Only shown if Level 4 is a folder.',
 	},
 	{
 		displayName: 'File Path',
@@ -327,6 +423,37 @@ export const fileFields: INodeProperties[] = [
 		description: 'Scope of the sharing link',
 	},
 	{
+		displayName: 'Upload To Folder \u2014 Selection',
+		name: 'folderSelection',
+		type: 'options',
+		noDataExpression: true,
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['upload'],
+			},
+		},
+		options: [
+			{
+				name: 'Browse',
+				value: 'browse',
+				description: 'Navigate folder by folder to select the destination',
+			},
+			{
+				name: 'By Path',
+				value: 'path',
+				description: 'Specify folder by path',
+			},
+			{
+				name: 'By ID',
+				value: 'id',
+				description: 'Specify folder by its unique ID',
+			},
+		],
+		default: 'browse',
+		description: 'How to specify the upload destination folder',
+	},
+	{
 		displayName: 'Upload To Folder',
 		name: 'parentId',
 		type: 'resourceLocator',
@@ -334,22 +461,12 @@ export const fileFields: INodeProperties[] = [
 			show: {
 				resource: ['file'],
 				operation: ['upload'],
+				folderSelection: ['path', 'id'],
 			},
 		},
-		default: { mode: 'list', value: 'root' },
+		default: { mode: 'path', value: '/' },
 		required: true,
 		modes: [
-			{
-				displayName: 'From List',
-				name: 'list',
-				type: 'list',
-				placeholder: 'Select a folder...',
-				typeOptions: {
-					searchListMethod: 'searchFolders',
-					searchable: true,
-					searchFilterRequired: false,
-				},
-			},
 			{
 				displayName: 'By Path',
 				name: 'path',
@@ -367,6 +484,97 @@ export const fileFields: INodeProperties[] = [
 		description: 'The folder where the file will be uploaded',
 	},
 	{
+		displayName: 'Level 1',
+		name: 'browseFolderF1',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel1',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['upload'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '',
+		required: true,
+		description: 'Select a \u25b6 folder to go deeper, or select the target folder directly',
+	},
+	{
+		displayName: 'Level 2',
+		name: 'browseFolderF2',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel2',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['upload'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 1 as the target',
+	},
+	{
+		displayName: 'Level 3',
+		name: 'browseFolderF3',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel3',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['upload'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 2 as the target',
+	},
+	{
+		displayName: 'Level 4',
+		name: 'browseFolderF4',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel4',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['upload'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 3 as the target',
+	},
+	{
+		displayName: 'Level 5',
+		name: 'browseFolderF5',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel5',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3', 'browseFolderF4'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['upload'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select the deepest target folder here, or leave as is to use Level 4 as the target',
+	},
+	{
 		displayName: 'File Name',
 		name: 'fileName',
 		type: 'string',
@@ -377,8 +585,8 @@ export const fileFields: INodeProperties[] = [
 			},
 		},
 		default: '',
-		required: true,
-		description: 'Name of the file to upload',
+		placeholder: 'Leave empty to use binary data filename',
+		description: 'Name for the uploaded file. Leave empty to use the filename from the binary data.',
 	},
 	{
 		displayName: 'Binary Data',

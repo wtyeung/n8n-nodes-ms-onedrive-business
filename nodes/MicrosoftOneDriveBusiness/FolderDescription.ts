@@ -136,6 +136,37 @@ export const folderFields: INodeProperties[] = [
 		description: 'The SharePoint site to access',
 	},
 	{
+		displayName: 'Create In Folder — Selection',
+		name: 'folderSelection',
+		type: 'options',
+		noDataExpression: true,
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				operation: ['create'],
+			},
+		},
+		options: [
+			{
+				name: 'Browse',
+				value: 'browse',
+				description: 'Navigate folder by folder to select the parent',
+			},
+			{
+				name: 'By Path',
+				value: 'path',
+				description: 'Specify parent folder by path',
+			},
+			{
+				name: 'By ID',
+				value: 'id',
+				description: 'Specify parent folder by its unique ID',
+			},
+		],
+		default: 'browse',
+		description: 'How to specify the parent folder',
+	},
+	{
 		displayName: 'Create In Folder',
 		name: 'parentId',
 		type: 'resourceLocator',
@@ -143,22 +174,12 @@ export const folderFields: INodeProperties[] = [
 			show: {
 				resource: ['folder'],
 				operation: ['create'],
+				folderSelection: ['path', 'id'],
 			},
 		},
-		default: { mode: 'list', value: 'root' },
+		default: { mode: 'path', value: '/' },
 		required: true,
 		modes: [
-			{
-				displayName: 'From List',
-				name: 'list',
-				type: 'list',
-				placeholder: 'Select a folder...',
-				typeOptions: {
-					searchListMethod: 'searchFolders',
-					searchable: true,
-					searchFilterRequired: false,
-				},
-			},
 			{
 				displayName: 'By Path',
 				name: 'path',
@@ -202,6 +223,11 @@ export const folderFields: INodeProperties[] = [
 		},
 		options: [
 			{
+				name: 'Browse',
+				value: 'browse',
+				description: 'Navigate folder by folder to select the target',
+			},
+			{
 				name: 'By Path',
 				value: 'path',
 				description: 'Specify folder by path (e.g., /Documents/MyFolder)',
@@ -212,8 +238,99 @@ export const folderFields: INodeProperties[] = [
 				description: 'Specify folder by its unique ID',
 			},
 		],
-		default: 'path',
+		default: 'browse',
 		description: 'How to specify the folder',
+	},
+	{
+		displayName: 'Level 1',
+		name: 'browseFolderF1',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel1',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				operation: ['create', 'delete', 'getItems', 'rename', 'share'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '',
+		required: true,
+		description: 'Select a ▶ folder to go deeper, or select the target folder directly',
+	},
+	{
+		displayName: 'Level 2',
+		name: 'browseFolderF2',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel2',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				operation: ['create', 'delete', 'getItems', 'rename', 'share'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 1 as the target',
+	},
+	{
+		displayName: 'Level 3',
+		name: 'browseFolderF3',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel3',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				operation: ['create', 'delete', 'getItems', 'rename', 'share'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 2 as the target',
+	},
+	{
+		displayName: 'Level 4',
+		name: 'browseFolderF4',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel4',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				operation: ['create', 'delete', 'getItems', 'rename', 'share'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select a subfolder to go deeper, or leave as is to use Level 3 as the target',
+	},
+	{
+		displayName: 'Level 5',
+		name: 'browseFolderF5',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getBrowseFolderLevel5',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3', 'browseFolderF4'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				operation: ['create', 'delete', 'getItems', 'rename', 'share'],
+				folderSelection: ['browse'],
+			},
+		},
+		default: '__stop__',
+		description: 'Select the deepest target folder here, or leave as is to use Level 4 as the target',
 	},
 	{
 		displayName: 'Folder Path',

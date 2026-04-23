@@ -14,6 +14,40 @@ import { fileFields, fileOperations } from './FileDescription';
 import { folderFields, folderOperations } from './FolderDescription';
 import { getMimeType, microsoftApiRequest, microsoftApiRequestAllItems } from './GenericFunctions';
 
+async function getDriveEndpointForLoadOptions(this: ILoadOptionsFunctions): Promise<string> {
+	const driveType = this.getNodeParameter('driveType', 0) as string;
+	let driveEndpoint = '/me/drive';
+
+	if (driveType === 'user') {
+		const userId = this.getNodeParameter('userId', 0) as string;
+		if (userId) driveEndpoint = `/users/${userId}/drive`;
+	} else if (driveType === 'site') {
+		const siteIdParam = this.getNodeParameter('siteId', 0) as IDataObject | string;
+		let siteId: string;
+
+		if (typeof siteIdParam === 'object' && siteIdParam.mode) {
+			const mode = siteIdParam.mode as string;
+			const value = siteIdParam.value as string;
+			if (mode === 'url') {
+				const url = new URL(value);
+				const siteData = await microsoftApiRequest.call(this, 'GET', `/sites/${url.hostname}:${url.pathname}`) as IDataObject;
+				siteId = siteData.id as string;
+			} else {
+				siteId = value;
+			}
+		} else {
+			siteId = siteIdParam as string;
+		}
+
+		if (!siteId) {
+			throw new Error('Please select a SharePoint Site before loading folders.');
+		}
+		driveEndpoint = `/sites/${siteId}/drive`;
+	}
+
+	return driveEndpoint;
+}
+
 export class MicrosoftOneDriveBusiness implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Microsoft OneDrive Business',
@@ -116,9 +150,20 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 
 				// Helper function to get file ID from path or ID
 				const getFileId = async (driveEndpoint: string): Promise<string> => {
-					const fileSelection = this.getNodeParameter('fileSelection', i, 'path') as string;
+					const fileSelection = this.getNodeParameter('fileSelection', i, 'browse') as string;
 					
-					if (fileSelection === 'id') {
+					if (fileSelection === 'browse') {
+						// Find first level where user selected a file (value starts with 'file:')
+						const levels = ['browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4', 'browseFolder5'];
+						for (const level of levels) {
+							const val = this.getNodeParameter(level, i, '') as string;
+							if (val.startsWith('file:')) {
+								return val.replace('file:', '');
+							}
+						}
+						throw new NodeOperationError(this.getNode(), 'No file selected. Please select a 📄 file in one of the browse levels.');
+
+					} else if (fileSelection === 'id') {
 						return this.getNodeParameter('fileId', i) as string;
 					} else {
 						// Get file by path (resourceLocator)
@@ -164,6 +209,57 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							);
 							
 							return fileMetadata.id as string;
+						}
+					}
+				};
+
+				// Helper function to get folder ID from path or ID
+				const getFolderId = async (driveEndpoint: string): Promise<string> => {
+					const folderSelection = this.getNodeParameter('folderSelection', i, 'browse') as string;
+
+					if (folderSelection === 'browse') {
+						// Walk levels F1→F5; last level with a folder: value is the effective folder
+						const levels = ['browseFolderF1', 'browseFolderF2', 'browseFolderF3', 'browseFolderF4', 'browseFolderF5'];
+						let folderId = '';
+						for (const level of levels) {
+							const val = this.getNodeParameter(level, i, '') as string;
+							if (val && val.startsWith('folder:')) {
+								folderId = val.replace('folder:', '');
+							}
+						}
+						if (!folderId) {
+							throw new NodeOperationError(this.getNode(), 'No folder selected. Please select a folder in the browse levels.');
+						}
+						return folderId;
+					}
+
+					if (folderSelection === 'id') {
+						return this.getNodeParameter('folderId', i) as string;
+					} else {
+						// Get folder by path (resourceLocator)
+						const folderPathParam = this.getNodeParameter('folderPath', i) as IDataObject | string;
+
+						if (typeof folderPathParam === 'object' && folderPathParam.mode) {
+							const mode = folderPathParam.mode as string;
+							const value = folderPathParam.value as string;
+
+							if (mode === 'list' || mode === 'id') {
+								return value || 'root';
+							} else {
+								let folderPath = value;
+								if (!folderPath || folderPath === '/') return 'root';
+								folderPath = folderPath.replace(/^\/+/, '');
+								const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
+								const folderMetadata = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/root:/${encodedPath}`);
+								return folderMetadata.id as string;
+							}
+						} else {
+							let folderPath = folderPathParam as string;
+							if (!folderPath || folderPath === '/') return 'root';
+							folderPath = folderPath.replace(/^\/+/, '');
+							const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
+							const folderMetadata = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/root:/${encodedPath}`);
+							return folderMetadata.id as string;
 						}
 					}
 				};
@@ -299,34 +395,39 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'upload') {
-						// Get parent folder ID (supports resourceLocator)
-						const parentIdParam = this.getNodeParameter('parentId', i) as IDataObject | string;
+						const uploadFolderSelection = this.getNodeParameter('folderSelection', i, 'browse') as string;
 						let parentId: string;
 
-						if (typeof parentIdParam === 'object' && parentIdParam.mode) {
-							const mode = parentIdParam.mode as string;
-							const value = parentIdParam.value as string;
-
-							if (mode === 'list' || mode === 'id') {
-								parentId = value || 'root';
-							} else {
-								// mode === 'path'
-								if (!value || value === '/') {
-									parentId = 'root';
-								} else {
-									// Resolve path to folder ID
-									let folderPath = value.replace(/^\/+/, '');
-									const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
-									const folderMetadata = await microsoftApiRequest.call(
-										this,
-										'GET',
-										`${driveEndpoint}/root:/${encodedPath}`,
-									);
-									parentId = folderMetadata.id as string;
-								}
-							}
+						if (uploadFolderSelection === 'browse') {
+							parentId = await getFolderId(driveEndpoint);
 						} else {
-							parentId = parentIdParam as string || 'root';
+							// Get parent folder ID via path or ID (resourceLocator)
+							const parentIdParam = this.getNodeParameter('parentId', i) as IDataObject | string;
+
+							if (typeof parentIdParam === 'object' && parentIdParam.mode) {
+								const mode = parentIdParam.mode as string;
+								const value = parentIdParam.value as string;
+
+								if (mode === 'id') {
+									parentId = value || 'root';
+								} else {
+									// mode === 'path'
+									if (!value || value === '/') {
+										parentId = 'root';
+									} else {
+										let folderPath = value.replace(/^\/+/, '');
+										const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
+										const folderMetadata = await microsoftApiRequest.call(
+											this,
+											'GET',
+											`${driveEndpoint}/root:/${encodedPath}`,
+										);
+										parentId = folderMetadata.id as string;
+									}
+								}
+							} else {
+								parentId = parentIdParam as string || 'root';
+							}
 						}
 
 						const fileName = this.getNodeParameter('fileName', i) as string;
@@ -387,103 +488,41 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 				}
 
-				// Helper function to get folder ID from path or ID
-				const getFolderId = async (driveEndpoint: string): Promise<string> => {
-					const folderSelection = this.getNodeParameter('folderSelection', i, 'path') as string;
-					
-					if (folderSelection === 'id') {
-						return this.getNodeParameter('folderId', i) as string;
-					} else {
-						// Get folder by path (resourceLocator)
-						const folderPathParam = this.getNodeParameter('folderPath', i) as IDataObject | string;
-						
-						// Handle resourceLocator format
-						if (typeof folderPathParam === 'object' && folderPathParam.mode) {
-							const mode = folderPathParam.mode as string;
-							const value = folderPathParam.value as string;
-							
-							if (mode === 'list' || mode === 'id') {
-								// Value is already an ID
-								return value || 'root';
-							} else {
-								// mode === 'path', value is a path
-								let folderPath = value;
-								
-								// Handle root folder
-								if (!folderPath || folderPath === '/') {
-									return 'root';
-								}
-								
-								// Remove leading slash if present
-								folderPath = folderPath.replace(/^\/+/, '');
-								
-								const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
-								const endpoint = `${driveEndpoint}/root:/${encodedPath}`;
-								
-								const folderMetadata = await microsoftApiRequest.call(
-									this,
-									'GET',
-									endpoint,
-								);
-								
-								return folderMetadata.id as string;
-							}
-						} else {
-							// Legacy string format
-							let folderPath = folderPathParam as string;
-							
-							// Handle root folder
-							if (!folderPath || folderPath === '/') {
-								return 'root';
-							}
-							
-							// Remove leading slash if present
-							folderPath = folderPath.replace(/^\/+/, '');
-							
-							const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
-							const endpoint = `${driveEndpoint}/root:/${encodedPath}`;
-							
-							const folderMetadata = await microsoftApiRequest.call(
-								this,
-								'GET',
-								endpoint,
-							);
-							
-							return folderMetadata.id as string;
-						}
-					}
-				};
-
 				if (resource === 'folder') {
 					if (operation === 'create') {
-						// Get parent folder ID (supports resourceLocator)
-						const parentIdParam = this.getNodeParameter('parentId', i) as IDataObject | string;
+						const folderSelectionCreate = this.getNodeParameter('folderSelection', i, 'browse') as string;
 						let parentId: string;
 
-						if (typeof parentIdParam === 'object' && parentIdParam.mode) {
-							const mode = parentIdParam.mode as string;
-							const value = parentIdParam.value as string;
-
-							if (mode === 'list' || mode === 'id') {
-								parentId = value || 'root';
-							} else {
-								// mode === 'path'
-								if (!value || value === '/') {
-									parentId = 'root';
-								} else {
-									// Resolve path to folder ID
-									let folderPath = value.replace(/^\/+/, '');
-									const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
-									const folderMetadata = await microsoftApiRequest.call(
-										this,
-										'GET',
-										`${driveEndpoint}/root:/${encodedPath}`,
-									);
-									parentId = folderMetadata.id as string;
-								}
-							}
+						if (folderSelectionCreate === 'browse') {
+							parentId = await getFolderId(driveEndpoint);
 						} else {
-							parentId = parentIdParam as string || 'root';
+							// Get parent folder ID via path or ID (resourceLocator)
+							const parentIdParam = this.getNodeParameter('parentId', i) as IDataObject | string;
+
+							if (typeof parentIdParam === 'object' && parentIdParam.mode) {
+								const mode = parentIdParam.mode as string;
+								const value = parentIdParam.value as string;
+
+								if (mode === 'id') {
+									parentId = value || 'root';
+								} else {
+									// mode === 'path'
+									if (!value || value === '/') {
+										parentId = 'root';
+									} else {
+										let folderPath = value.replace(/^\/+/, '');
+										const encodedPath = folderPath.split('/').map(encodeURIComponent).join('/');
+										const folderMetadata = await microsoftApiRequest.call(
+											this,
+											'GET',
+											`${driveEndpoint}/root:/${encodedPath}`,
+										);
+										parentId = folderMetadata.id as string;
+									}
+								}
+							} else {
+								parentId = parentIdParam as string || 'root';
+							}
 						}
 
 						const folderName = this.getNodeParameter('folderName', i) as string;
@@ -581,6 +620,191 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 	}
 
 	methods = {
+		loadOptions: {
+			async getBrowseLevel1(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+					`${driveEndpoint}/root/children?$select=id,name,folder,file`,
+				);
+
+				const results: Array<{ name: string; value: string }> = [];
+				for (const item of allItems as IDataObject[]) {
+					if (item.folder) {
+						results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
+					} else if (item.file) {
+						results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
+					}
+				}
+				return results;
+			},
+
+			async getBrowseLevel2(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolder1', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 1 first —', value: '__done__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
+				);
+				const results: Array<{ name: string; value: string }> = [];
+				for (const item of allItems as IDataObject[]) {
+					if (item.folder) results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
+					else if (item.file) results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
+				}
+				return results;
+			},
+
+			async getBrowseLevel3(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolder2', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 2 first —', value: '__done__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
+				);
+				const results: Array<{ name: string; value: string }> = [];
+				for (const item of allItems as IDataObject[]) {
+					if (item.folder) results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
+					else if (item.file) results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
+				}
+				return results;
+			},
+
+			async getBrowseLevel4(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolder3', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 3 first —', value: '__done__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
+				);
+				const results: Array<{ name: string; value: string }> = [];
+				for (const item of allItems as IDataObject[]) {
+					if (item.folder) results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
+					else if (item.file) results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
+				}
+				return results;
+			},
+
+			async getBrowseLevel5(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolder4', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 4 first —', value: '__done__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
+				);
+				const results: Array<{ name: string; value: string }> = [];
+				for (const item of allItems as IDataObject[]) {
+					if (item.folder) results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
+					else if (item.file) results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
+				}
+				return results;
+			},
+
+			async getBrowseFolderLevel1(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+					`${driveEndpoint}/root/children?$select=id,name,folder`,
+				);
+				return [
+					{ name: '▶ / (Root)', value: 'folder:root' },
+					...(allItems as IDataObject[])
+						.filter((item) => item.folder)
+						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+				];
+			},
+
+			async getBrowseFolderLevel2(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolderF1', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 1 first —', value: '__stop__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+				const endpoint = parentId === 'root'
+					? `${driveEndpoint}/root/children?$select=id,name,folder`
+					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
+				return [
+					{ name: '— use Level 1 folder —', value: '__stop__' },
+					...(allItems as IDataObject[])
+						.filter((item) => item.folder)
+						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+				];
+			},
+
+			async getBrowseFolderLevel3(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolderF2', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 2 first —', value: '__stop__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+				const endpoint = parentId === 'root'
+					? `${driveEndpoint}/root/children?$select=id,name,folder`
+					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
+				return [
+					{ name: '— use Level 2 folder —', value: '__stop__' },
+					...(allItems as IDataObject[])
+						.filter((item) => item.folder)
+						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+				];
+			},
+
+			async getBrowseFolderLevel4(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolderF3', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 3 first —', value: '__stop__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+				const endpoint = parentId === 'root'
+					? `${driveEndpoint}/root/children?$select=id,name,folder`
+					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
+				return [
+					{ name: '— use Level 3 folder —', value: '__stop__' },
+					...(allItems as IDataObject[])
+						.filter((item) => item.folder)
+						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+				];
+			},
+
+			async getBrowseFolderLevel5(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const parentVal = this.getNodeParameter('browseFolderF4', 0) as string;
+				if (!parentVal || !parentVal.startsWith('folder:')) {
+					return [{ name: '— select a folder at Level 4 first —', value: '__stop__' }];
+				}
+				const parentId = parentVal.replace('folder:', '');
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+				const endpoint = parentId === 'root'
+					? `${driveEndpoint}/root/children?$select=id,name,folder`
+					: `${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`;
+				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
+				return [
+					{ name: '— use Level 4 folder —', value: '__stop__' },
+					...(allItems as IDataObject[])
+						.filter((item) => item.folder)
+						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+				];
+			},
+		},
+
 		listSearch: {
 			async searchFiles(
 				this: ILoadOptionsFunctions,
