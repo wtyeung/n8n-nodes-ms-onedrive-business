@@ -1,12 +1,12 @@
 # n8n-nodes-ms-onedrive-business
 
-This is an n8n community node. It lets you use Microsoft OneDrive for Business and SharePoint in your n8n workflows.
+This is an n8n community node. It lets you use **Microsoft OneDrive for Business**, **SharePoint**, and **Excel** in your n8n workflows.
 
 Microsoft OneDrive for Business is a cloud storage service for business users that integrates with Microsoft 365 and SharePoint.
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/sustainable-use-license/) workflow automation platform.
 
-[Installation](#installation) | [Operations](#operations) | [Credentials](#credentials) | [Compatibility](#compatibility) | [Resources](#resources)
+[Installation](#installation) | [Operations](#operations) | [File Selection](#file-selection) | [Credentials](#credentials) | [Compatibility](#compatibility) | [Resources](#resources)
 
 ## Installation
 
@@ -18,38 +18,61 @@ npm install n8n-nodes-ms-onedrive-business
 
 ## Operations
 
-### Microsoft OneDrive Business Node
+### File Operations
 
-**File Operations:**
-- **Upload** - Upload files to OneDrive/SharePoint
-- **Download** - Download files as binary data
-- **Get** - Retrieve file metadata
-- **Delete** - Remove files
-- **Rename** - Rename files
-- **Search** - Search for files
-- **Share** - Create sharing links (view/edit, anonymous/organization)
+- **Upload** — Upload files to OneDrive or SharePoint
+- **Download** — Download files as binary data
+- **Get** — Retrieve file metadata
+- **Delete** — Remove files
+- **Rename** — Rename files
+- **Search** — Search for files by name
+- **Share** — Create sharing links (view/edit, anonymous/organization)
 
-**Folder Operations:**
-- **Create** - Create new folders
-- **Delete** - Remove folders
-- **Get Items** - List folder contents
-- **Rename** - Rename folders
-- **Search** - Search for folders
-- **Share** - Create sharing links for folders
+### Folder Operations
 
-### Microsoft OneDrive Business Trigger Node
+- **Create** — Create new folders
+- **Delete** — Remove folders
+- **Get Items** — List folder contents
+- **Rename** — Rename folders
+- **Search** — Search for folders by name
+- **Share** — Create sharing links for folders
 
-Triggers workflows when files or folders are created or updated:
-- **File Created** - Trigger when new files are uploaded
-- **File Updated** - Trigger when files are modified
-- **Folder Created** - Trigger when new folders are created
-- **Folder Updated** - Trigger when folders are modified
+### Excel Operations
 
-**Features:**
-- Webhook-based real-time notifications
-- Delta query for efficient change tracking
-- Advanced deduplication to prevent duplicate executions
-- State persistence across n8n restarts
+Read and write data in Excel workbooks stored on OneDrive or SharePoint.
+
+- **Read Rows** — Read rows from a worksheet, returned as structured JSON items.
+  Each item includes a `_row_number` field (the actual Excel row number, e.g. `2`, `3`…) that can be used to target rows in subsequent Delete or Update operations.
+
+- **Append or Update Row** — Write data to a worksheet.
+  - **Match Record by Column** — Select a column to look up an existing row. If a match is found it is updated; if not, a new row is appended. Leave empty to always append.
+  - **Matching Value** — The value to search for in the match column.
+  - **Data Mode**:
+    - *Auto-Map Input Data to Columns* — Automatically maps incoming `$json` fields to column headers by name.
+    - *Map Each Column Manually* — Explicitly set a value (or expression) for each column.
+  - Unspecified columns are **preserved** — only the columns you define are overwritten.
+
+- **Delete Rows** — Delete one or more rows from a worksheet. Returns the deleted row data as output items.
+  - **By Row Number** — Provide a single row number (use `{{ $json._row_number }}` from a Read Rows step).
+  - **By Row Range** — Provide a range address such as `2:5` to delete multiple rows.
+
+## File Selection
+
+All file and folder fields use a **browser-like hierarchical picker** that mirrors the OneDrive folder tree:
+
+- **Browse** (default) — Navigate up to 5 levels deep. Each level dynamically loads its contents from OneDrive/SharePoint as you select. Files and folders are displayed with icons.
+- **By Path** — Type the full path directly (e.g. `/Documents/Reports/Q1.xlsx`).
+- **By ID** — Provide the OneDrive item ID directly for maximum precision.
+
+The same picker is used for selecting Excel workbooks, so worksheets load automatically once you select a file.
+
+## Drive Types
+
+Every operation supports:
+
+- **My Drive** — The authenticated user's own OneDrive (`/me/drive`)
+- **User Drive** — Any user's OneDrive by UPN or ID (`/users/{userId}/drive`). Leave User ID empty to use the authenticated user.
+- **SharePoint Site Drive** — A SharePoint site's document library (`/sites/{siteId}/drive`)
 
 ## Credentials
 
@@ -102,14 +125,6 @@ Triggers workflows when files or folders are created or updated:
 - **Minimum n8n version**: 1.0.0
 - **Tested with**: n8n 1.x
 
-## Drive Types
-
-This node supports both:
-- **User Drive**: Access individual user OneDrive (`/users/{userId}/drive`)
-- **SharePoint Site Drive**: Access SharePoint site drives (`/sites/{siteId}/drive`)
-
-Leave User ID empty to use the authenticated user's drive.
-
 ## Resources
 
 * [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
@@ -118,9 +133,24 @@ Leave User ID empty to use the authenticated user's drive.
 
 ## Version history
 
+### 0.1.3
+- Added **Excel resource** with Read Rows, Append/Update Row, and Delete Rows operations
+- Browser-like hierarchical folder/file picker for Excel workbook selection
+- Worksheet dropdown auto-populates after selecting an Excel file
+- `_row_number` field added to Read Rows output for use in Delete/Update flows
+- Delete Rows supports Row Number mode (via `_row_number`) and Row Range mode
+- Append/Update preserves existing column values — only specified columns are overwritten
+- Match Record by Column is a selectable dropdown with hint text
+
+### 0.1.2
+- Extended Microsoft OAuth2 credential with credential test
+- Simplified credential to essential fields only
+
+### 0.1.1
+- Hierarchical folder browse UI for all folder/file selection fields
+
 ### 0.1.0
 - Initial release
 - File operations (Upload, Download, Get, Delete, Rename, Search, Share)
 - Folder operations (Create, Delete, Get Items, Rename, Search, Share)
-- Trigger node with deduplication
 - Support for User Drives and SharePoint Site Drives
