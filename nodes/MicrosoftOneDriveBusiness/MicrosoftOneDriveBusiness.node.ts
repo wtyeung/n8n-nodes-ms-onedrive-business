@@ -631,9 +631,10 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							const dataStartRow = this.getNodeParameter('dataStartRow', i, 1) as number;
 							const values = responseData.values as (string | number | boolean)[][];
 							const headers = values[keyRow] || [];
-							const rows = values.slice(dataStartRow).map((row) => {
+							const rows = values.slice(dataStartRow).map((row, rowIdx) => {
 								const obj: IDataObject = {};
 								headers.forEach((header, idx) => { obj[String(header)] = row[idx]; });
+								obj['_row_number'] = dataStartRow + 1 + rowIdx;
 								return { json: obj };
 							});
 							returnData.push(...rows);
@@ -644,8 +645,11 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						const dataMode = this.getNodeParameter('dataMode', i) as string;
 						const columnToMatchOn = this.getNodeParameter('columnToMatchOn', i, '') as string;
 						const usedRangeData = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/usedRange`);
-						const values = usedRangeData.values as (string | number | boolean)[][];
-						const headers = values[0] || [];
+						const values = (usedRangeData.values as (string | number | boolean)[][]) || [];
+						const headers = (values.length > 0 ? values[0] : []) as (string | number | boolean)[];
+						if (headers.length === 0) {
+							throw new NodeOperationError(this.getNode(), 'Worksheet has no header row. Please add column headers in row 1.');
+						}
 						let newRow: (string | number | boolean)[];
 						if (dataMode === 'autoMap') {
 							const inputData = items[i].json;
@@ -665,13 +669,46 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							}
 						}
 						const rowNum = rowToUpdate !== -1 ? rowToUpdate + 1 : values.length + 1;
-						const colLetter = String.fromCharCode(65 + headers.length - 1);
+						// Build column address that handles >26 columns (A, B, ..., Z, AA, AB, ...)
+						const colIndex = headers.length - 1;
+						const colLetter = colIndex < 26
+							? String.fromCharCode(65 + colIndex)
+							: String.fromCharCode(64 + Math.floor(colIndex / 26)) + String.fromCharCode(65 + (colIndex % 26));
 						const range = `A${rowNum}:${colLetter}${rowNum}`;
-						responseData = await microsoftApiRequest.call(this, 'PATCH', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${range}')`, { values: [newRow] });
+						await microsoftApiRequest.call(this, 'PATCH', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${range}')`, { values: [newRow] });
+						const resultObj: IDataObject = { updated: rowToUpdate !== -1, row: rowNum };
+						headers.forEach((h, idx) => { resultObj[String(h)] = newRow[idx]; });
+						returnData.push({ json: resultObj });
+						continue;
 
 					} else if (operation === 'deleteRows') {
-						const deleteRange = this.getNodeParameter('deleteRange', i) as string;
-						responseData = await microsoftApiRequest.call(this, 'POST', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${deleteRange}')/delete`, { shift: 'Up' });
+						const deleteMode = this.getNodeParameter('deleteMode', i, 'rowNumber') as string;
+						let deleteRange: string;
+						if (deleteMode === 'rowNumber') {
+							const rowNum = this.getNodeParameter('deleteRowNumber', i) as number;
+							deleteRange = `${rowNum}:${rowNum}`;
+						} else {
+							deleteRange = this.getNodeParameter('deleteRange', i) as string;
+						}
+						// Read header row and the range to delete before deleting
+						const headerData = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/usedRange`);
+						const headers = ((headerData.values as (string | number | boolean)[][])?.[0] || []) as (string | number | boolean)[];
+						const rangeData = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${deleteRange}')`);
+						// Perform the delete
+						await microsoftApiRequest.call(this, 'POST', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${deleteRange}')/delete`, { shift: 'Up' });
+						// Return deleted rows as items
+						const deletedValues = (rangeData.values as (string | number | boolean)[][]) || [];
+						if (headers.length > 0 && deletedValues.length > 0) {
+							const rows = deletedValues.map((row) => {
+								const obj: IDataObject = {};
+								headers.forEach((h, idx) => { obj[String(h)] = row[idx]; });
+								return { json: obj };
+							});
+							returnData.push(...rows);
+						} else {
+							returnData.push({ json: { success: true, deletedRange: deleteRange } });
+						}
+						continue;
 					}
 				}
 

@@ -483,6 +483,50 @@ export const excelFields: INodeProperties[] = [
 		],
 	},
 
+	// Delete Rows - Mode
+	{
+		displayName: 'Delete By',
+		name: 'deleteMode',
+		type: 'options',
+		noDataExpression: true,
+		displayOptions: {
+			show: {
+				resource: ['excel'],
+				operation: ['deleteRows'],
+			},
+		},
+		options: [
+			{
+				name: 'Row Number',
+				value: 'rowNumber',
+				description: 'Delete a single row using the _row_number field from Read Rows output',
+			},
+			{
+				name: 'Row Range',
+				value: 'rowRange',
+				description: 'Delete a range of rows using a range address (e.g. 2:5)',
+			},
+		],
+		default: 'rowNumber',
+	},
+
+	// Delete Rows - Row Number
+	{
+		displayName: 'Row Number',
+		name: 'deleteRowNumber',
+		type: 'number',
+		default: 0,
+		required: true,
+		description: 'The row number to delete. Use the _row_number field from Read Rows output via an expression.',
+		displayOptions: {
+			show: {
+				resource: ['excel'],
+				operation: ['deleteRows'],
+				deleteMode: ['rowNumber'],
+			},
+		},
+	},
+
 	// Delete Rows - Range
 	{
 		displayName: 'Range',
@@ -496,6 +540,7 @@ export const excelFields: INodeProperties[] = [
 			show: {
 				resource: ['excel'],
 				operation: ['deleteRows'],
+				deleteMode: ['rowRange'],
 			},
 		},
 	},
