@@ -650,14 +650,6 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						if (headers.length === 0) {
 							throw new NodeOperationError(this.getNode(), 'Worksheet has no header row. Please add column headers in row 1.');
 						}
-						let newRow: (string | number | boolean)[];
-						if (dataMode === 'autoMap') {
-							const inputData = items[i].json;
-							newRow = headers.map((h) => (inputData[String(h)] !== undefined ? String(inputData[String(h)]) : ''));
-						} else {
-							const fieldValues = ((this.getNodeParameter('fieldsUi', i, {}) as IDataObject).fieldValues as IDataObject[]) || [];
-							newRow = headers.map((h) => { const f = fieldValues.find((x) => x.column === String(h)); return f ? String(f.fieldValue) : ''; });
-						}
 						let rowToUpdate = -1;
 						if (columnToMatchOn) {
 							const valueToMatchOn = this.getNodeParameter('valueToMatchOn', i) as string;
@@ -667,6 +659,18 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 									if (String(values[r][colIdx]) === valueToMatchOn) { rowToUpdate = r; break; }
 								}
 							}
+						}
+						// Start from existing row data (preserve columns not being updated)
+						const existingRow: (string | number | boolean)[] = rowToUpdate !== -1
+							? [...(values[rowToUpdate] as (string | number | boolean)[])]
+							: headers.map(() => '');
+						let newRow: (string | number | boolean)[];
+						if (dataMode === 'autoMap') {
+							const inputData = items[i].json;
+							newRow = headers.map((h, idx) => (inputData[String(h)] !== undefined ? String(inputData[String(h)]) : existingRow[idx]));
+						} else {
+							const fieldValues = ((this.getNodeParameter('fieldsUi', i, {}) as IDataObject).fieldValues as IDataObject[]) || [];
+							newRow = headers.map((h, idx) => { const f = fieldValues.find((x) => x.column === String(h)); return f ? String(f.fieldValue) : existingRow[idx]; });
 						}
 						const rowNum = rowToUpdate !== -1 ? rowToUpdate + 1 : values.length + 1;
 						// Build column address that handles >26 columns (A, B, ..., Z, AA, AB, ...)

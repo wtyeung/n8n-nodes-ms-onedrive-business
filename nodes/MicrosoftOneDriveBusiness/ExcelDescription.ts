@@ -379,6 +379,41 @@ export const excelFields: INodeProperties[] = [
 		},
 	},
 
+	// Append or Update - Column to Match On
+	{
+		displayName: 'Match Record by Column Name or ID',
+		name: 'columnToMatchOn',
+		type: 'options',
+		default: '',
+		hint: 'Leave empty to always append a new row',
+		description: 'The column used to find an existing row to update. If no match is found, a new row will be appended. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+		typeOptions: {
+			loadOptionsMethod: 'getColumns',
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'fileSelection', 'filePath', 'fileId', 'browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4', 'browseFolder5', 'worksheet'],
+		},
+		displayOptions: {
+			show: {
+				resource: ['excel'],
+				operation: ['appendOrUpdate'],
+			},
+		},
+	},
+
+	// Append or Update - Value of Column to Match On
+	{
+		displayName: 'Matching Value',
+		name: 'valueToMatchOn',
+		type: 'string',
+		default: '',
+		description: 'The value to look for in the match column to identify the row to update',
+		displayOptions: {
+			show: {
+				resource: ['excel'],
+				operation: ['appendOrUpdate'],
+			},
+		},
+	},
+
 	// Append or Update - Data Mode
 	{
 		displayName: 'Data Mode',
@@ -402,39 +437,6 @@ export const excelFields: INodeProperties[] = [
 			show: {
 				resource: ['excel'],
 				operation: ['appendOrUpdate'],
-			},
-		},
-	},
-
-	// Append or Update - Column to Match On
-	{
-		displayName: 'Column to Match On',
-		name: 'columnToMatchOn',
-		type: 'string',
-		default: '',
-		description: 'The column to check to see if the row already exists. If empty, a new row will always be appended.',
-		displayOptions: {
-			show: {
-				resource: ['excel'],
-				operation: ['appendOrUpdate'],
-			},
-		},
-	},
-
-	// Append or Update - Value of Column to Match On
-	{
-		displayName: 'Value of Column to Match On',
-		name: 'valueToMatchOn',
-		type: 'string',
-		default: '',
-		description: 'The value to match in the specified column',
-		displayOptions: {
-			show: {
-				resource: ['excel'],
-				operation: ['appendOrUpdate'],
-			},
-			hide: {
-				columnToMatchOn: [''],
 			},
 		},
 	},
