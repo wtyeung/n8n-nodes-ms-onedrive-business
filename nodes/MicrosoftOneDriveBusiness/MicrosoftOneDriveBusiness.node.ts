@@ -756,7 +756,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel2(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder1', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 1 First —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 1 First —', value: '' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -775,7 +775,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel3(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder2', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 2 First —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 2 First —', value: '' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -794,7 +794,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel4(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder3', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 3 First —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 3 First —', value: '' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
@@ -813,7 +813,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			async getBrowseLevel5(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('browseFolder4', 0) as string;
 				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 4 First —', value: '__done__' }];
+					return [{ name: '— Select a Folder at Level 4 First —', value: '' }];
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);

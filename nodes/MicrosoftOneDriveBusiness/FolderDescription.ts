@@ -275,7 +275,7 @@ export const folderFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select a subfolder to go deeper, or leave as is to use Level 1 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
@@ -293,7 +293,7 @@ export const folderFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select a subfolder to go deeper, or leave as is to use Level 2 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
@@ -311,7 +311,7 @@ export const folderFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select a subfolder to go deeper, or leave as is to use Level 3 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
@@ -329,7 +329,7 @@ export const folderFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select the deepest target folder here, or leave as is to use Level 4 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
