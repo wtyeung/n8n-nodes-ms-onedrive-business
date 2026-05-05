@@ -12,6 +12,7 @@ import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 import { fileFields, fileOperations } from './FileDescription';
 import { folderFields, folderOperations } from './FolderDescription';
+import { excelFields, excelOperations } from './ExcelDescription';
 import { getMimeType, microsoftApiRequest, microsoftApiRequestAllItems } from './GenericFunctions';
 
 async function getDriveEndpointForLoadOptions(this: ILoadOptionsFunctions): Promise<string> {
@@ -77,6 +78,10 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
+						name: 'Excel',
+						value: 'excel',
+					},
+					{
 						name: 'File',
 						value: 'file',
 					},
@@ -87,6 +92,8 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 				],
 				default: 'file',
 			},
+			...excelOperations,
+			...excelFields,
 			...fileOperations,
 			...fileFields,
 			...folderOperations,
@@ -603,6 +610,71 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 				}
 
+				if (resource === 'excel') {
+					const workbookId = await getFileId(driveEndpoint);
+					const worksheet = this.getNodeParameter('worksheet', i) as string;
+
+					if (operation === 'readRows') {
+						const useRange = this.getNodeParameter('useRange', i, false) as boolean;
+						const options = this.getNodeParameter('options', i, {}) as IDataObject;
+						const rawData = (options.rawData as boolean) || false;
+						let endpoint: string;
+						if (useRange) {
+							const range = this.getNodeParameter('range', i, '') as string;
+							endpoint = `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${range}')`;
+						} else {
+							endpoint = `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/usedRange`;
+						}
+						responseData = await microsoftApiRequest.call(this, 'GET', endpoint);
+						if (!rawData && responseData?.values) {
+							const keyRow = this.getNodeParameter('keyRow', i, 0) as number;
+							const dataStartRow = this.getNodeParameter('dataStartRow', i, 1) as number;
+							const values = responseData.values as (string | number | boolean)[][];
+							const headers = values[keyRow] || [];
+							const rows = values.slice(dataStartRow).map((row) => {
+								const obj: IDataObject = {};
+								headers.forEach((header, idx) => { obj[String(header)] = row[idx]; });
+								return { json: obj };
+							});
+							returnData.push(...rows);
+							continue;
+						}
+
+					} else if (operation === 'appendOrUpdate') {
+						const dataMode = this.getNodeParameter('dataMode', i) as string;
+						const columnToMatchOn = this.getNodeParameter('columnToMatchOn', i, '') as string;
+						const usedRangeData = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/usedRange`);
+						const values = usedRangeData.values as (string | number | boolean)[][];
+						const headers = values[0] || [];
+						let newRow: (string | number | boolean)[];
+						if (dataMode === 'autoMap') {
+							const inputData = items[i].json;
+							newRow = headers.map((h) => (inputData[String(h)] !== undefined ? String(inputData[String(h)]) : ''));
+						} else {
+							const fieldValues = ((this.getNodeParameter('fieldsUi', i, {}) as IDataObject).fieldValues as IDataObject[]) || [];
+							newRow = headers.map((h) => { const f = fieldValues.find((x) => x.column === String(h)); return f ? String(f.fieldValue) : ''; });
+						}
+						let rowToUpdate = -1;
+						if (columnToMatchOn) {
+							const valueToMatchOn = this.getNodeParameter('valueToMatchOn', i) as string;
+							const colIdx = headers.findIndex((h) => String(h) === columnToMatchOn);
+							if (colIdx !== -1) {
+								for (let r = 1; r < values.length; r++) {
+									if (String(values[r][colIdx]) === valueToMatchOn) { rowToUpdate = r; break; }
+								}
+							}
+						}
+						const rowNum = rowToUpdate !== -1 ? rowToUpdate + 1 : values.length + 1;
+						const colLetter = String.fromCharCode(65 + headers.length - 1);
+						const range = `A${rowNum}:${colLetter}${rowNum}`;
+						responseData = await microsoftApiRequest.call(this, 'PATCH', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${range}')`, { values: [newRow] });
+
+					} else if (operation === 'deleteRows') {
+						const deleteRange = this.getNodeParameter('deleteRange', i) as string;
+						responseData = await microsoftApiRequest.call(this, 'POST', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/range(address='${deleteRange}')/delete`, { shift: 'Up' });
+					}
+				}
+
 				if (Array.isArray(responseData)) {
 					returnData.push.apply(returnData, responseData as INodeExecutionData[]);
 				} else if (responseData !== undefined) {
@@ -803,6 +875,97 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						.filter((item) => item.folder)
 						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
 				];
+			},
+
+			async getWorksheets(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				try {
+					const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+					const fileSelection = this.getNodeParameter('fileSelection', 0) as string || 'browse';
+					let workbookId = '';
+
+					if (fileSelection === 'browse') {
+						for (const level of ['browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4', 'browseFolder5']) {
+							try {
+								const val = this.getNodeParameter(level, 0) as string;
+								if (val && val.startsWith('file:')) {
+									workbookId = val.replace('file:', '');
+									break;
+								}
+							} catch { continue; }
+						}
+					} else if (fileSelection === 'id') {
+						workbookId = this.getNodeParameter('fileId', 0) as string;
+					} else {
+						const filePathParam = this.getNodeParameter('filePath', 0) as IDataObject;
+						const mode = filePathParam.mode as string;
+						const value = filePathParam.value as string;
+						if (mode === 'list' || mode === 'id') {
+							workbookId = value;
+						} else {
+							const filePath = (value as string).replace(/^\/+/, '');
+							const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+							const meta = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/root:/${encodedPath}`);
+							workbookId = meta.id as string;
+						}
+					}
+
+					if (!workbookId) return [{ name: '— Select an Excel File First —', value: '' }];
+
+					const response = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/items/${workbookId}/workbook/worksheets`);
+					if (response?.value) {
+						return (response.value as IDataObject[]).map((ws) => ({ name: ws.name as string, value: ws.name as string }));
+					}
+					return [{ name: '— No Worksheets Found —', value: '' }];
+				} catch (error) {
+					return [{ name: `— Error: ${error instanceof Error ? error.message : 'Unknown'} —`, value: '' }];
+				}
+			},
+
+			async getColumns(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				try {
+					const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+					const fileSelection = this.getNodeParameter('fileSelection', 0) as string || 'browse';
+					let workbookId = '';
+
+					if (fileSelection === 'browse') {
+						for (const level of ['browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4', 'browseFolder5']) {
+							try {
+								const val = this.getNodeParameter(level, 0) as string;
+								if (val && val.startsWith('file:')) {
+									workbookId = val.replace('file:', '');
+									break;
+								}
+							} catch { continue; }
+						}
+					} else if (fileSelection === 'id') {
+						workbookId = this.getNodeParameter('fileId', 0) as string;
+					} else {
+						const filePathParam = this.getNodeParameter('filePath', 0) as IDataObject;
+						const mode = filePathParam.mode as string;
+						const value = filePathParam.value as string;
+						if (mode === 'list' || mode === 'id') {
+							workbookId = value;
+						} else {
+							const filePath = (value as string).replace(/^\/+/, '');
+							const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+							const meta = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/root:/${encodedPath}`);
+							workbookId = meta.id as string;
+						}
+					}
+
+					if (!workbookId) return [{ name: '— Select an Excel File First —', value: '' }];
+
+					const worksheet = this.getNodeParameter('worksheet', 0) as string;
+					if (!worksheet) return [{ name: '— Select a Worksheet First —', value: '' }];
+
+					const usedRange = await microsoftApiRequest.call(this, 'GET', `${driveEndpoint}/items/${workbookId}/workbook/worksheets/${worksheet}/usedRange`);
+					if (usedRange?.values?.length > 0) {
+						return (usedRange.values[0] as (string | number | boolean)[]).map((h) => ({ name: String(h), value: String(h) }));
+					}
+					return [{ name: '— No Columns Found —', value: '' }];
+				} catch (error) {
+					return [{ name: `— Error: ${error instanceof Error ? error.message : 'Unknown'} —`, value: '' }];
+				}
 			},
 		},
 
