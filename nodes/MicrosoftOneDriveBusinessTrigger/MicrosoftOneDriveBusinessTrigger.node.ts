@@ -58,22 +58,22 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 					{
 						name: 'File Created',
 						value: 'file.created',
-						description: 'Trigger when a new file is created',
+						description: 'Fires when a new file is uploaded to the watched folder. Select a folder below.',
 					},
 					{
 						name: 'File Updated',
 						value: 'file.updated',
-						description: 'Trigger when a file is updated',
+						description: 'Fires when a file is renamed or its content changes. Select a folder (all files inside) or a specific file below.',
 					},
 					{
 						name: 'Folder Created',
 						value: 'folder.created',
-						description: 'Trigger when a new folder is created',
+						description: 'Fires when a new subfolder is created inside the watched folder. Select the parent folder below.',
 					},
 					{
 						name: 'Folder Updated',
 						value: 'folder.updated',
-						description: 'Trigger when a folder is updated',
+						description: 'Fires when a subfolder is renamed or moved. Does NOT fire for file changes inside the folder — use File Updated for that.',
 					},
 				],
 				default: 'file.created',
@@ -147,7 +147,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 					},
 				],
 				default: 'root',
-				description: 'How to specify the folder to monitor',
+				description: 'Select the folder to watch. For File/Folder Created events, select the parent folder where new items will appear. For File Updated, select a folder (watches all files inside) or a specific file. For Folder Updated, select the parent folder containing the subfolders to monitor.',
 			},
 			{
 				displayName: 'Level 1 Name or ID',

@@ -56,6 +56,33 @@ Read and write data in Excel workbooks stored on OneDrive or SharePoint.
   - **By Row Number** — Provide a single row number (use `{{ $json._row_number }}` from a Read Rows step).
   - **By Row Range** — Provide a range address such as `2:5` to delete multiple rows.
 
+### OneDrive Business Trigger
+
+Listens for changes in OneDrive/SharePoint using Microsoft Graph change notifications and the delta API.
+
+#### Events
+
+| Event | Fires when… | What to select |
+|---|---|---|
+| **File Created** | A new file is uploaded to the watched folder | Select the **parent folder** to watch |
+| **File Updated** | A file is renamed, moved, or its content changes | Select the **parent folder** (any file inside) or a **specific file** |
+| **Folder Created** | A new subfolder is created inside the watched folder | Select the **parent folder** to watch |
+| **Folder Updated** | A subfolder is renamed or moved | Select the **parent folder** that contains the subfolders |
+
+#### Important notes
+
+- **File Updated** is the correct event for detecting file renames — renaming a file is a file metadata change, not a folder change.
+- **Folder Updated** only fires when a **subfolder item itself** is renamed or moved. It does NOT fire when files inside the folder are added, renamed, or updated.
+- Selecting a **specific file** for "File Updated" narrows the trigger to only that file. Selecting a **folder** watches all files inside it.
+- The trigger uses Microsoft Graph subscriptions (webhook-based), so **a publicly accessible HTTPS URL is required** — `http://localhost` will not work.
+- After updating the package, **deactivate and re-activate the workflow** to reinitialise the subscription and delta state.
+
+#### Folder/File Selection for Browse mode
+
+- **▶ FolderName** — a folder; selecting it navigates deeper
+- **FileName** (no prefix) — a specific file; only available when event is "File Updated"
+- **— Use Level N Folder —** — stop here and use the folder selected at Level N as the target
+
 ## File Selection
 
 All file and folder fields use a **browser-like hierarchical picker** that mirrors the OneDrive folder tree:
