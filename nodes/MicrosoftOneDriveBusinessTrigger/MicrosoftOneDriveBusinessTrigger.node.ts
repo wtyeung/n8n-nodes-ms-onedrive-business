@@ -440,12 +440,25 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 					watchTarget.scope === 'root'
 						? `${driveEndpoint}/root/delta`
 						: `${driveEndpoint}/items/${watchTarget.scope}/delta`;
+
 				try {
+					const initialKnownItems: { [key: string]: { eTag: string; lastModifiedDateTime: string } } = {};
 					let deltaUrl: string | undefined = deltaEndpoint;
 					while (deltaUrl) {
 						const deltaResp = (deltaUrl.startsWith('https://')
 							? await microsoftApiRequest.call(this, 'GET', '', {}, {}, deltaUrl)
 							: await microsoftApiRequest.call(this, 'GET', deltaUrl)) as IDataObject;
+						// Record current state of each item so later changes are classified as 'updated', not 'created'
+						if (Array.isArray(deltaResp.value)) {
+							for (const item of deltaResp.value as IDataObject[]) {
+								if (item.id && item.eTag && !item.deleted) {
+									initialKnownItems[item.id as string] = {
+										eTag: item.eTag as string,
+										lastModifiedDateTime: item.lastModifiedDateTime as string,
+									};
+								}
+							}
+						}
 						if (deltaResp['@odata.deltaLink']) {
 							webhookData.deltaLink = deltaResp['@odata.deltaLink'] as string;
 							deltaUrl = undefined;
@@ -453,6 +466,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 							deltaUrl = deltaResp['@odata.nextLink'] as string | undefined;
 						}
 					}
+					webhookData.lastKnownItems = initialKnownItems;
 				} catch {
 					// Non-fatal: without delta init, first trigger may emit existing items
 				}
