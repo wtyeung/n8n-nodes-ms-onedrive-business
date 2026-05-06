@@ -155,7 +155,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getWatchLevel1',
-					loadOptionsDependsOn: ['driveType', 'userId', 'siteId'],
+					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'event'],
 				},
 				displayOptions: {
 					show: { folderSelection: ['browse'] },
@@ -170,7 +170,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getWatchLevel2',
-					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'watchFolder1'],
+					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'event', 'watchFolder1'],
 				},
 				displayOptions: {
 					show: { folderSelection: ['browse'] },
@@ -184,7 +184,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getWatchLevel3',
-					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'watchFolder1', 'watchFolder2'],
+					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'event', 'watchFolder1', 'watchFolder2'],
 				},
 				displayOptions: {
 					show: { folderSelection: ['browse'] },
@@ -198,7 +198,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getWatchLevel4',
-					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'watchFolder1', 'watchFolder2', 'watchFolder3'],
+					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'event', 'watchFolder1', 'watchFolder2', 'watchFolder3'],
 				},
 				displayOptions: {
 					show: { folderSelection: ['browse'] },
@@ -212,7 +212,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getWatchLevel5',
-					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'watchFolder1', 'watchFolder2', 'watchFolder3', 'watchFolder4'],
+					loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'event', 'watchFolder1', 'watchFolder2', 'watchFolder3', 'watchFolder4'],
 				},
 				displayOptions: {
 					show: { folderSelection: ['browse'] },
@@ -238,6 +238,8 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 	methods = {
 		loadOptions: {
 			async getWatchLevel1(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const event = this.getNodeParameter('event', 0) as string;
+				const showFiles = event === 'file.updated';
 				const driveType = this.getNodeParameter('driveType') as string;
 				let driveEndpoint = '/me/drive';
 				if (driveType === 'user') {
@@ -248,18 +250,23 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 					driveEndpoint = `/sites/${siteId}/drive`;
 				}
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
-					`${driveEndpoint}/root/children?$select=id,name,folder`,
+					`${driveEndpoint}/root/children?$select=id,name,folder,file`,
 				);
 				return (allItems as IDataObject[])
-					.filter((item) => item.folder)
-					.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` }));
+					.filter((item) => showFiles || !!item.folder)
+					.map((item) =>
+						item.folder
+							? { name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` }
+							: { name: item.name as string, value: `file:${item.id as string}` },
+					);
 			},
 
 			async getWatchLevel2(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('watchFolder1', 0) as string;
-				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 1 First —', value: '__stop__' }];
-				}
+				if (!parentVal || parentVal === '__stop__') return [{ name: '— Select a Folder at Level 1 First —', value: '__stop__' }];
+				if (parentVal.startsWith('file:')) return [{ name: '— File Selected at Level 1 — No Subfolders —', value: '__stop__' }];
+				const event = this.getNodeParameter('event', 0) as string;
+				const showFiles = event === 'file.updated';
 				const driveType = this.getNodeParameter('driveType') as string;
 				let driveEndpoint = '/me/drive';
 				if (driveType === 'user') {
@@ -271,21 +278,26 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
-					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`,
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
 				);
 				return [
 					{ name: '— Use Level 1 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
-						.filter((item) => item.folder)
-						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+						.filter((item) => showFiles || !!item.folder)
+						.map((item) =>
+							item.folder
+								? { name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` }
+								: { name: item.name as string, value: `file:${item.id as string}` },
+						),
 				];
 			},
 
 			async getWatchLevel3(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('watchFolder2', 0) as string;
-				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 2 First —', value: '__stop__' }];
-				}
+				if (!parentVal || parentVal === '__stop__') return [{ name: '— Select a Folder at Level 2 First —', value: '__stop__' }];
+				if (parentVal.startsWith('file:')) return [{ name: '— File Selected at Level 2 — No Subfolders —', value: '__stop__' }];
+				const event = this.getNodeParameter('event', 0) as string;
+				const showFiles = event === 'file.updated';
 				const driveType = this.getNodeParameter('driveType') as string;
 				let driveEndpoint = '/me/drive';
 				if (driveType === 'user') {
@@ -297,21 +309,26 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
-					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`,
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
 				);
 				return [
 					{ name: '— Use Level 2 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
-						.filter((item) => item.folder)
-						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+						.filter((item) => showFiles || !!item.folder)
+						.map((item) =>
+							item.folder
+								? { name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` }
+								: { name: item.name as string, value: `file:${item.id as string}` },
+						),
 				];
 			},
 
 			async getWatchLevel4(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('watchFolder3', 0) as string;
-				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 3 First —', value: '__stop__' }];
-				}
+				if (!parentVal || parentVal === '__stop__') return [{ name: '— Select a Folder at Level 3 First —', value: '__stop__' }];
+				if (parentVal.startsWith('file:')) return [{ name: '— File Selected at Level 3 — No Subfolders —', value: '__stop__' }];
+				const event = this.getNodeParameter('event', 0) as string;
+				const showFiles = event === 'file.updated';
 				const driveType = this.getNodeParameter('driveType') as string;
 				let driveEndpoint = '/me/drive';
 				if (driveType === 'user') {
@@ -323,21 +340,26 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
-					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`,
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
 				);
 				return [
 					{ name: '— Use Level 3 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
-						.filter((item) => item.folder)
-						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+						.filter((item) => showFiles || !!item.folder)
+						.map((item) =>
+							item.folder
+								? { name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` }
+								: { name: item.name as string, value: `file:${item.id as string}` },
+						),
 				];
 			},
 
 			async getWatchLevel5(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
 				const parentVal = this.getNodeParameter('watchFolder4', 0) as string;
-				if (!parentVal || !parentVal.startsWith('folder:')) {
-					return [{ name: '— Select a Folder at Level 4 First —', value: '__stop__' }];
-				}
+				if (!parentVal || parentVal === '__stop__') return [{ name: '— Select a Folder at Level 4 First —', value: '__stop__' }];
+				if (parentVal.startsWith('file:')) return [{ name: '— File Selected at Level 4 — No Subfolders —', value: '__stop__' }];
+				const event = this.getNodeParameter('event', 0) as string;
+				const showFiles = event === 'file.updated';
 				const driveType = this.getNodeParameter('driveType') as string;
 				let driveEndpoint = '/me/drive';
 				if (driveType === 'user') {
@@ -349,13 +371,17 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
-					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder`,
+					`${driveEndpoint}/items/${parentId}/children?$select=id,name,folder,file`,
 				);
 				return [
 					{ name: '— Use Level 4 Folder —', value: '__stop__' },
 					...(allItems as IDataObject[])
-						.filter((item) => item.folder)
-						.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+						.filter((item) => showFiles || !!item.folder)
+						.map((item) =>
+							item.folder
+								? { name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` }
+								: { name: item.name as string, value: `file:${item.id as string}` },
+						),
 				];
 			},
 		},
@@ -370,7 +396,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 			async create(this: IHookFunctions): Promise<boolean> {
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				const driveType = this.getNodeParameter('driveType') as string;
-				const folderToWatch = resolveFolderToWatch(this);
+				const watchTarget = resolveWatchTarget(this);
 
 				let driveEndpoint = '/me/drive';
 				if (driveType === 'user') {
@@ -383,10 +409,9 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 					driveEndpoint = `/sites/${siteId}/drive`;
 				}
 
-				// Graph subscriptions require no leading slash on the resource path
+				// Graph change notifications only support drive root — folder/file filtering is done via delta
 				const resource = `${driveEndpoint}/root`.replace(/^\//, '');
 
-				// The resource path must be the drive root, but delta queries can filter by folder
 				const body = {
 					changeType: 'updated',
 					notificationUrl: webhookUrl,
@@ -412,9 +437,9 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 
 				// Initialize the delta link now so first real notification only returns NEW changes
 				const deltaEndpoint =
-					folderToWatch === 'root'
+					watchTarget.scope === 'root'
 						? `${driveEndpoint}/root/delta`
-						: `${driveEndpoint}/items/${folderToWatch}/delta`;
+						: `${driveEndpoint}/items/${watchTarget.scope}/delta`;
 				try {
 					let deltaUrl: string | undefined = deltaEndpoint;
 					while (deltaUrl) {
@@ -465,7 +490,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 
 		const event = this.getNodeParameter('event') as string;
 		const driveType = this.getNodeParameter('driveType') as string;
-		const folderToWatch = resolveFolderToWatch(this);
+		const watchTarget = resolveWatchTarget(this);
 
 		let driveEndpoint = '/me/drive';
 		if (driveType === 'user') {
@@ -489,9 +514,9 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 		};
 
 		const deltaEndpoint =
-			folderToWatch === 'root'
+			watchTarget.scope === 'root'
 				? `${driveEndpoint}/root/delta`
-				: `${driveEndpoint}/items/${folderToWatch}/delta`;
+				: `${driveEndpoint}/items/${watchTarget.scope}/delta`;
 
 		let deltaUrl = state.deltaLink || deltaEndpoint;
 		const changes: IDataObject[] = [];
@@ -506,6 +531,11 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				if (response.value && Array.isArray(response.value)) {
 					for (const item of response.value as IDataObject[]) {
 						if (item.deleted) {
+							continue;
+						}
+
+						// If watching a specific file, skip all other items
+						if (watchTarget.fileId && item.id !== watchTarget.fileId) {
 							continue;
 						}
 
@@ -566,20 +596,31 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 	}
 }
 
-function resolveFolderToWatch(ctx: IHookFunctions | IWebhookFunctions): string {
+interface IWatchTarget {
+	scope: string;
+	fileId?: string;
+}
+
+function resolveWatchTarget(ctx: IHookFunctions | IWebhookFunctions): IWatchTarget {
 	const folderSelection = ctx.getNodeParameter('folderSelection') as string;
-	if (folderSelection === 'root') return 'root';
-	if (folderSelection === 'id') return ctx.getNodeParameter('watchFolderId') as string;
-	// browse mode — walk levels, use the last folder: value that isn't __stop__
+	if (folderSelection === 'root') return { scope: 'root' };
+	if (folderSelection === 'id') return { scope: ctx.getNodeParameter('watchFolderId') as string };
+	// browse mode — walk levels tracking last folder scope and any final file selection
 	const levels = ['watchFolder1', 'watchFolder2', 'watchFolder3', 'watchFolder4', 'watchFolder5'];
-	let folderId = 'root';
+	let scopeId = 'root';
+	let fileId: string | undefined;
 	for (const level of levels) {
 		const val = ctx.getNodeParameter(level, '') as string;
-		if (val && val.startsWith('folder:')) {
-			folderId = val.replace('folder:', '');
+		if (!val || val === '__stop__') break;
+		if (val.startsWith('folder:')) {
+			scopeId = val.replace('folder:', '');
+			fileId = undefined;
+		} else if (val.startsWith('file:')) {
+			fileId = val.replace('file:', '');
+			break;
 		}
 	}
-	return folderId;
+	return { scope: scopeId, fileId };
 }
 
 function isStableItem(item: IDataObject): boolean {
