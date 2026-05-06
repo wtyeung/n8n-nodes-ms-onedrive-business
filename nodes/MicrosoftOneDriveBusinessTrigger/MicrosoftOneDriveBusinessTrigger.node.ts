@@ -418,7 +418,9 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				try {
 					let deltaUrl: string | undefined = deltaEndpoint;
 					while (deltaUrl) {
-						const deltaResp = await microsoftApiRequest.call(this, 'GET', '', {}, {}, deltaUrl) as IDataObject;
+						const deltaResp = (deltaUrl.startsWith('https://')
+							? await microsoftApiRequest.call(this, 'GET', '', {}, {}, deltaUrl)
+							: await microsoftApiRequest.call(this, 'GET', deltaUrl)) as IDataObject;
 						if (deltaResp['@odata.deltaLink']) {
 							webhookData.deltaLink = deltaResp['@odata.deltaLink'] as string;
 							deltaUrl = undefined;
@@ -497,7 +499,9 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 		try {
 			let hasMore = true;
 			while (hasMore) {
-				const response = await microsoftApiRequest.call(this, 'GET', '', {}, {}, deltaUrl);
+				const response = deltaUrl.startsWith('https://')
+					? await microsoftApiRequest.call(this, 'GET', '', {}, {}, deltaUrl)
+					: await microsoftApiRequest.call(this, 'GET', deltaUrl);
 
 				if (response.value && Array.isArray(response.value)) {
 					for (const item of response.value as IDataObject[]) {
