@@ -97,7 +97,7 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 					{
 						name: 'Shared Folder (Link)',
 						value: 'sharedLink',
-						description: 'Monitor a folder shared via OneDrive/SharePoint sharing link',
+						description: 'Not supported for triggers — Microsoft Graph subscriptions require direct drive ownership. Use User Drive or SharePoint Site Drive.',
 					},
 				],
 				default: 'user',
@@ -458,6 +458,14 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 			async create(this: IHookFunctions): Promise<boolean> {
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				const driveType = this.getNodeParameter('driveType') as string;
+
+				if (driveType === 'sharedLink') {
+					throw new NodeOperationError(
+						this.getNode(),
+						'The "Shared Folder (Link)" drive type is not supported for triggers. Microsoft Graph does not allow creating change notification subscriptions on drives accessed via a sharing link — the authenticated user must be an owner or direct member of the drive. Use "User Drive" or "SharePoint Site Drive" instead.',
+					);
+				}
+
 				const watchTarget = resolveWatchTarget(this);
 
 				let driveEndpoint = '/me/drive';
