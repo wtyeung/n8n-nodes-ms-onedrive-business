@@ -75,9 +75,29 @@ export const folderFields: INodeProperties[] = [
 				value: 'site',
 				description: 'Access SharePoint site drive',
 			},
+			{
+				name: 'Shared Folder (Link)',
+				value: 'sharedLink',
+				description: 'Browse a folder shared via OneDrive/SharePoint sharing link',
+			},
 		],
 		default: 'user',
 		description: 'Type of drive to access',
+	},
+	{
+		displayName: 'Shared Folder URL',
+		name: 'sharedLinkUrl',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				driveType: ['sharedLink'],
+			},
+		},
+		default: '',
+		placeholder: 'https://1drv.ms/... or https://contoso.sharepoint.com/:f:/...',
+		description: 'Paste the sharing link of the shared folder (right-click → Share → Copy link in OneDrive/SharePoint)',
+		required: true,
 	},
 	{
 		displayName: 'User ID',
@@ -162,9 +182,29 @@ export const folderFields: INodeProperties[] = [
 				value: 'id',
 				description: 'Specify parent folder by its unique ID',
 			},
+			{
+				name: 'By Sharing Link',
+				value: 'link',
+				description: 'Paste an OneDrive/SharePoint sharing link ("Copy link") to access any shared folder',
+			},
 		],
 		default: 'browse',
 		description: 'How to specify the parent folder',
+	},
+	{
+		displayName: 'Sharing Link',
+		name: 'folderSharingUrl',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['folder'],
+				folderSelection: ['link'],
+			},
+		},
+		default: '',
+		placeholder: 'https://1drv.ms/... or https://contoso.sharepoint.com/:f:/...',
+		description: 'Paste the sharing link copied from OneDrive or SharePoint ("Share → Copy link")',
+		required: true,
 	},
 	{
 		displayName: 'Create In Folder',

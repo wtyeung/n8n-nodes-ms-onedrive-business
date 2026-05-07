@@ -81,9 +81,29 @@ export const fileFields: INodeProperties[] = [
 				value: 'site',
 				description: 'Access SharePoint site drive',
 			},
+			{
+				name: 'Shared Folder (Link)',
+				value: 'sharedLink',
+				description: 'Browse a folder shared via OneDrive/SharePoint sharing link',
+			},
 		],
 		default: 'user',
 		description: 'Type of drive to access',
+	},
+	{
+		displayName: 'Shared Folder URL',
+		name: 'sharedLinkUrl',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				driveType: ['sharedLink'],
+			},
+		},
+		default: '',
+		placeholder: 'https://1drv.ms/... or https://contoso.sharepoint.com/:f:/...',
+		description: 'Paste the sharing link of the shared folder (right-click → Share → Copy link in OneDrive/SharePoint)',
+		required: true,
 	},
 	{
 		displayName: 'User ID',
@@ -168,9 +188,29 @@ export const fileFields: INodeProperties[] = [
 				value: 'id',
 				description: 'Specify file by its unique ID',
 			},
+			{
+				name: 'By Sharing Link',
+				value: 'link',
+				description: 'Paste an OneDrive/SharePoint sharing link ("Copy link") to access any shared file',
+			},
 		],
 		default: 'browse',
 		description: 'How to specify the file',
+	},
+	{
+		displayName: 'Sharing Link',
+		name: 'fileSharingUrl',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				fileSelection: ['link'],
+			},
+		},
+		default: '',
+		placeholder: 'https://1drv.ms/... or https://contoso.sharepoint.com/:f:/...',
+		description: 'Paste the sharing link copied from OneDrive or SharePoint ("Share → Copy link")',
+		required: true,
 	},
 	{
 		displayName: 'Level 1 Name or ID',
@@ -423,7 +463,7 @@ export const fileFields: INodeProperties[] = [
 		description: 'Scope of the sharing link',
 	},
 	{
-		displayName: 'Upload To Folder \u2014 Selection',
+		displayName: 'Upload To Folder — Selection',
 		name: 'folderSelection',
 		type: 'options',
 		noDataExpression: true,
@@ -449,9 +489,30 @@ export const fileFields: INodeProperties[] = [
 				value: 'id',
 				description: 'Specify folder by its unique ID',
 			},
+			{
+				name: 'By Sharing Link',
+				value: 'link',
+				description: 'Paste an OneDrive/SharePoint sharing link to upload into a shared folder',
+			},
 		],
 		default: 'browse',
 		description: 'How to specify the upload destination folder',
+	},
+	{
+		displayName: 'Sharing Link',
+		name: 'uploadFolderSharingUrl',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['upload'],
+				folderSelection: ['link'],
+			},
+		},
+		default: '',
+		placeholder: 'https://1drv.ms/... or https://contoso.sharepoint.com/:f:/...',
+		description: 'Paste the sharing link of the destination folder ("Share → Copy link")',
+		required: true,
 	},
 	{
 		displayName: 'Upload To Folder',
@@ -517,7 +578,7 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select a subfolder to go deeper, or leave as is to use Level 1 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
@@ -535,7 +596,7 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select a subfolder to go deeper, or leave as is to use Level 2 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
@@ -553,7 +614,7 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select a subfolder to go deeper, or leave as is to use Level 3 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{
@@ -571,7 +632,7 @@ export const fileFields: INodeProperties[] = [
 				folderSelection: ['browse'],
 			},
 		},
-		default: '',
+		default: '__stop__',
 		description: 'Select the deepest target folder here, or leave as is to use Level 4 as the target. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 	},
 	{

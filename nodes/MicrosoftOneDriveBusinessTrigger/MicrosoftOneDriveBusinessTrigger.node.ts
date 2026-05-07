@@ -94,8 +94,27 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 						value: 'site',
 						description: 'Monitor SharePoint site drive',
 					},
+					{
+						name: 'Shared Folder (Link)',
+						value: 'sharedLink',
+						description: 'Monitor a folder shared via OneDrive/SharePoint sharing link',
+					},
 				],
 				default: 'user',
+			},
+			{
+				displayName: 'Shared Folder URL',
+				name: 'sharedLinkUrl',
+				type: 'string',
+				displayOptions: {
+					show: {
+						driveType: ['sharedLink'],
+					},
+				},
+				default: '',
+				placeholder: 'https://1drv.ms/... or https://contoso.sharepoint.com/:f:/...',
+				description: 'Paste the sharing link of the shared folder (right-click → Share → Copy link in OneDrive/SharePoint)',
+				required: true,
 			},
 			{
 				displayName: 'User ID',
@@ -241,6 +260,25 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				const event = this.getNodeParameter('event', 0) as string;
 				const showFiles = event === 'file.updated';
 				const driveType = this.getNodeParameter('driveType') as string;
+				if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+					if (!url) return [{ name: '— Enter a Shared Folder URL First —', value: '__stop__' }];
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const root = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference,folder`) as IDataObject;
+					if (!root.folder) return [{ name: '— Link Points to a File, Not a Folder —', value: '__stop__' }];
+					const driveId = (root.parentReference as IDataObject)?.driveId as string;
+					const rootId = root.id as string;
+					const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+						`/drives/${driveId}/items/${rootId}/children?$select=id,name,folder,file`,
+					);
+					return (allItems as IDataObject[])
+						.filter((item) => showFiles || !!item.folder)
+						.map((item) =>
+							item.folder
+								? { name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` }
+								: { name: item.name as string, value: `file:${item.id as string}` },
+						);
+				}
 				let driveEndpoint = '/me/drive';
 				if (driveType === 'user') {
 					const userId = this.getNodeParameter('userId', 0) as string;
@@ -275,6 +313,12 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				} else if (driveType === 'site') {
 					const siteId = this.getNodeParameter('siteId', 0) as string;
 					driveEndpoint = `/sites/${siteId}/drive`;
+				} else if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`) as IDataObject;
+					const driveId = (item.parentReference as IDataObject)?.driveId as string;
+					if (driveId) driveEndpoint = `/drives/${driveId}`;
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
@@ -306,6 +350,12 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				} else if (driveType === 'site') {
 					const siteId = this.getNodeParameter('siteId', 0) as string;
 					driveEndpoint = `/sites/${siteId}/drive`;
+				} else if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`) as IDataObject;
+					const driveId = (item.parentReference as IDataObject)?.driveId as string;
+					if (driveId) driveEndpoint = `/drives/${driveId}`;
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
@@ -337,6 +387,12 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				} else if (driveType === 'site') {
 					const siteId = this.getNodeParameter('siteId', 0) as string;
 					driveEndpoint = `/sites/${siteId}/drive`;
+				} else if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`) as IDataObject;
+					const driveId = (item.parentReference as IDataObject)?.driveId as string;
+					if (driveId) driveEndpoint = `/drives/${driveId}`;
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
@@ -368,6 +424,12 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				} else if (driveType === 'site') {
 					const siteId = this.getNodeParameter('siteId', 0) as string;
 					driveEndpoint = `/sites/${siteId}/drive`;
+				} else if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`) as IDataObject;
+					const driveId = (item.parentReference as IDataObject)?.driveId as string;
+					if (driveId) driveEndpoint = `/drives/${driveId}`;
 				}
 				const parentId = parentVal.replace('folder:', '');
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
@@ -407,6 +469,12 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 				} else if (driveType === 'site') {
 					const siteId = this.getNodeParameter('siteId') as string;
 					driveEndpoint = `/sites/${siteId}/drive`;
+				} else if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl') as string;
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`) as IDataObject;
+					const resolvedDriveId = (item.parentReference as IDataObject)?.driveId as string;
+					if (resolvedDriveId) driveEndpoint = `/drives/${resolvedDriveId}`;
 				}
 
 				// Graph change notifications only support drive root — folder/file filtering is done via delta
@@ -515,6 +583,12 @@ export class MicrosoftOneDriveBusinessTrigger implements INodeType {
 		} else if (driveType === 'site') {
 			const siteId = this.getNodeParameter('siteId') as string;
 			driveEndpoint = `/sites/${siteId}/drive`;
+		} else if (driveType === 'sharedLink') {
+			const url = this.getNodeParameter('sharedLinkUrl') as string;
+			const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+			const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`) as IDataObject;
+			const resolvedDriveId = (item.parentReference as IDataObject)?.driveId as string;
+			if (resolvedDriveId) driveEndpoint = `/drives/${resolvedDriveId}`;
 		}
 
 		const webhookData = this.getWorkflowStaticData('node');

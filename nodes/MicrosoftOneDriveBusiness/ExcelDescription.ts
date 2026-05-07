@@ -58,9 +58,29 @@ export const excelFields: INodeProperties[] = [
 				value: 'site',
 				description: 'Access SharePoint site drive',
 			},
+			{
+				name: 'Shared Folder (Link)',
+				value: 'sharedLink',
+				description: 'Browse a folder shared via OneDrive/SharePoint sharing link',
+			},
 		],
 		default: 'user',
 		description: 'Type of drive to access',
+	},
+	{
+		displayName: 'Shared Folder URL',
+		name: 'sharedLinkUrl',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['excel'],
+				driveType: ['sharedLink'],
+			},
+		},
+		default: '',
+		placeholder: 'https://1drv.ms/... or https://contoso.sharepoint.com/:f:/...',
+		description: 'Paste the sharing link of the shared folder (right-click → Share → Copy link in OneDrive/SharePoint)',
+		required: true,
 	},
 	{
 		displayName: 'User ID',

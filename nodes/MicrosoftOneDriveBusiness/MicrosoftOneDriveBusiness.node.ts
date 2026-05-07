@@ -44,6 +44,14 @@ async function getDriveEndpointForLoadOptions(this: ILoadOptionsFunctions): Prom
 			throw new NodeOperationError(this.getNode(), 'Please select a SharePoint Site before loading folders.');
 		}
 		driveEndpoint = `/sites/${siteId}/drive`;
+	} else if (driveType === 'sharedLink') {
+		const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+		if (!url) throw new NodeOperationError(this.getNode(), 'Please enter a Shared Folder URL before loading folders.');
+		const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+		const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`) as IDataObject;
+		const driveId = (item.parentReference as IDataObject)?.driveId as string;
+		if (!driveId) throw new NodeOperationError(this.getNode(), 'Could not resolve the sharing link. Make sure it points to a valid folder.');
+		driveEndpoint = `/drives/${driveId}`;
 	}
 
 	return driveEndpoint;
@@ -154,12 +162,28 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					driveEndpoint = `/sites/${siteId}/drive`;
+				} else if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', i) as string;
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`);
+					const resolvedDriveId = (item.parentReference as IDataObject)?.driveId as string;
+					if (resolvedDriveId) driveEndpoint = `/drives/${resolvedDriveId}`;
 				}
 
 				// Helper function to get file ID from path or ID
-				const getFileId = async (driveEndpoint: string): Promise<string> => {
+				// Uses and may mutate the outer driveEndpoint (e.g. when resolving a sharing link)
+				const getFileId = async (): Promise<string> => {
 					const fileSelection = this.getNodeParameter('fileSelection', i, 'browse') as string;
-					
+
+					if (fileSelection === 'link') {
+						const url = this.getNodeParameter('fileSharingUrl', i) as string;
+						const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+						const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`);
+						const resolvedDriveId = (item.parentReference as IDataObject)?.driveId as string;
+						if (resolvedDriveId) driveEndpoint = `/drives/${resolvedDriveId}`;
+						return item.id as string;
+					}
+
 					if (fileSelection === 'browse') {
 						// Find first level where user selected a file (value starts with 'file:')
 						const levels = ['browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4', 'browseFolder5'];
@@ -222,8 +246,18 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 				};
 
 				// Helper function to get folder ID from path or ID
-				const getFolderId = async (driveEndpoint: string): Promise<string> => {
+				// Uses and may mutate the outer driveEndpoint (e.g. when resolving a sharing link)
+				const getFolderId = async (): Promise<string> => {
 					const folderSelection = this.getNodeParameter('folderSelection', i, 'browse') as string;
+
+					if (folderSelection === 'link') {
+						const url = this.getNodeParameter('folderSharingUrl', i) as string;
+						const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+						const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`);
+						const resolvedDriveId = (item.parentReference as IDataObject)?.driveId as string;
+						if (resolvedDriveId) driveEndpoint = `/drives/${resolvedDriveId}`;
+						return item.id as string;
+					}
 
 					if (folderSelection === 'browse') {
 						// Walk levels F1→F5; last level with a folder: value is the effective folder
@@ -274,7 +308,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 
 				if (resource === 'file') {
 					if (operation === 'delete') {
-						const fileId = await getFileId(driveEndpoint);
+						const fileId = await getFileId();
 						responseData = await microsoftApiRequest.call(
 							this,
 							'DELETE',
@@ -284,7 +318,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'download') {
-						const fileId = await getFileId(driveEndpoint);
+						const fileId = await getFileId();
 						const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
 
 						const fileMetadata = await microsoftApiRequest.call(
@@ -353,7 +387,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'get') {
-						const fileId = await getFileId(driveEndpoint);
+						const fileId = await getFileId();
 						responseData = await microsoftApiRequest.call(
 							this,
 							'GET',
@@ -362,7 +396,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'rename') {
-						const fileId = await getFileId(driveEndpoint);
+						const fileId = await getFileId();
 						const newName = this.getNodeParameter('newName', i) as string;
 						const body = {
 							name: newName,
@@ -387,7 +421,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'share') {
-						const fileId = await getFileId(driveEndpoint);
+						const fileId = await getFileId();
 						const linkType = this.getNodeParameter('linkType', i) as string;
 						const linkScope = this.getNodeParameter('linkScope', i) as string;
 						const body = {
@@ -407,7 +441,14 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						let parentId: string;
 
 						if (uploadFolderSelection === 'browse') {
-							parentId = await getFolderId(driveEndpoint);
+							parentId = await getFolderId();
+						} else if (uploadFolderSelection === 'link') {
+							const url = this.getNodeParameter('uploadFolderSharingUrl', i) as string;
+							const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+							const item = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference`);
+							const resolvedDriveId = (item.parentReference as IDataObject)?.driveId as string;
+							if (resolvedDriveId) driveEndpoint = `/drives/${resolvedDriveId}`;
+							parentId = item.id as string;
 						} else {
 							// Get parent folder ID via path or ID (resourceLocator)
 							const parentIdParam = this.getNodeParameter('parentId', i) as IDataObject | string;
@@ -502,7 +543,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						let parentId: string;
 
 						if (folderSelectionCreate === 'browse') {
-							parentId = await getFolderId(driveEndpoint);
+							parentId = await getFolderId();
 						} else {
 							// Get parent folder ID via path or ID (resourceLocator)
 							const parentIdParam = this.getNodeParameter('parentId', i) as IDataObject | string;
@@ -549,7 +590,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'delete') {
-						const folderId = await getFolderId(driveEndpoint);
+						const folderId = await getFolderId();
 						responseData = await microsoftApiRequest.call(
 							this,
 							'DELETE',
@@ -559,7 +600,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'getItems') {
-						const folderId = await getFolderId(driveEndpoint);
+						const folderId = await getFolderId();
 						const endpoint =
 							folderId === 'root'
 								? `${driveEndpoint}/root/children`
@@ -569,7 +610,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'rename') {
-						const folderId = await getFolderId(driveEndpoint);
+						const folderId = await getFolderId();
 						const newName = this.getNodeParameter('newName', i) as string;
 						const body = {
 							name: newName,
@@ -594,7 +635,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					}
 
 					if (operation === 'share') {
-						const folderId = await getFolderId(driveEndpoint);
+						const folderId = await getFolderId();
 						const linkType = this.getNodeParameter('linkType', i) as string;
 						const linkScope = this.getNodeParameter('linkScope', i) as string;
 						const body = {
@@ -611,7 +652,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 				}
 
 				if (resource === 'excel') {
-					const workbookId = await getFileId(driveEndpoint);
+					const workbookId = await getFileId();
 					const worksheet = this.getNodeParameter('worksheet', i) as string;
 
 					if (operation === 'readRows') {
@@ -736,19 +777,34 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 	methods = {
 		loadOptions: {
 			async getBrowseLevel1(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
-				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
+				const driveType = this.getNodeParameter('driveType', 0) as string;
+				if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+					if (!url) return [{ name: '— Enter a Shared Folder URL First —', value: '' }];
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const root = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference,folder`) as IDataObject;
+					if (!root.folder) return [{ name: '— Link Points to a File, Not a Folder —', value: '' }];
+					const driveId = (root.parentReference as IDataObject)?.driveId as string;
+					const rootId = root.id as string;
+					const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+						`/drives/${driveId}/items/${rootId}/children?$select=id,name,folder,file`,
+					);
+					const results: Array<{ name: string; value: string }> = [];
+					for (const item of allItems as IDataObject[]) {
+						if (item.folder) results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
+						else if (item.file) results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
+					}
+					return results;
+				}
 
+				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
 					`${driveEndpoint}/root/children?$select=id,name,folder,file`,
 				);
-
 				const results: Array<{ name: string; value: string }> = [];
 				for (const item of allItems as IDataObject[]) {
-					if (item.folder) {
-						results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
-					} else if (item.file) {
-						results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
-					}
+					if (item.folder) results.push({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` });
+					else if (item.file) results.push({ name: `📄 ${item.name as string}`, value: `file:${item.id as string}` });
 				}
 				return results;
 			},
@@ -830,6 +886,26 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 			},
 
 			async getBrowseFolderLevel1(this: ILoadOptionsFunctions): Promise<Array<{ name: string; value: string }>> {
+				const driveType = this.getNodeParameter('driveType', 0) as string;
+				if (driveType === 'sharedLink') {
+					const url = this.getNodeParameter('sharedLinkUrl', 0) as string;
+					if (!url) return [{ name: '— Enter a Shared Folder URL First —', value: '' }];
+					const encoded = 'u!' + Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+					const root = await microsoftApiRequest.call(this, 'GET', `/shares/${encoded}/driveItem?$select=id,parentReference,folder`) as IDataObject;
+					if (!root.folder) return [{ name: '— Link Points to a File, Not a Folder —', value: '' }];
+					const driveId = (root.parentReference as IDataObject)?.driveId as string;
+					const rootId = root.id as string;
+					const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
+						`/drives/${driveId}/items/${rootId}/children?$select=id,name,folder`,
+					);
+					return [
+						{ name: '▶ / (Shared Root)', value: `folder:${rootId}` },
+						...(allItems as IDataObject[])
+							.filter((item) => item.folder)
+							.map((item) => ({ name: `▶ ${item.name as string}`, value: `folder:${item.id as string}` })),
+					];
+				}
+
 				const driveEndpoint = await getDriveEndpointForLoadOptions.call(this);
 				const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET',
 					`${driveEndpoint}/root/children?$select=id,name,folder`,
