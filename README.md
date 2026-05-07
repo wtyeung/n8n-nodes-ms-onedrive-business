@@ -85,11 +85,12 @@ Listens for changes in OneDrive/SharePoint using Microsoft Graph change notifica
 
 ## File Selection
 
-All file and folder fields use a **browser-like hierarchical picker** that mirrors the OneDrive folder tree:
+All file and folder fields support multiple selection modes:
 
 - **Browse** (default) — Navigate up to 5 levels deep. Each level dynamically loads its contents from OneDrive/SharePoint as you select. Files and folders are displayed with icons.
 - **By Path** — Type the full path directly (e.g. `/Documents/Reports/Q1.xlsx`).
 - **By ID** — Provide the OneDrive item ID directly for maximum precision.
+- **By Sharing Link** — Paste any OneDrive or SharePoint sharing link to access a shared file or folder directly, without needing to know its path or ID.
 
 The same picker is used for selecting Excel workbooks, so worksheets load automatically once you select a file.
 
@@ -97,9 +98,11 @@ The same picker is used for selecting Excel workbooks, so worksheets load automa
 
 Every operation supports:
 
-- **My Drive** — The authenticated user's own OneDrive (`/me/drive`)
-- **User Drive** — Any user's OneDrive by UPN or ID (`/users/{userId}/drive`). Leave User ID empty to use the authenticated user.
-- **SharePoint Site Drive** — A SharePoint site's document library (`/sites/{siteId}/drive`)
+- **User Drive** — The authenticated user's own OneDrive, or any other user's drive by UPN or ID. Leave User ID empty to use the authenticated user.
+- **SharePoint Site Drive** — A SharePoint site's document library.
+- **Shared Folder (Link)** — Paste an OneDrive or SharePoint sharing link to browse and operate on a folder that has been shared with you. Once the link is entered, the full 5-level hierarchical folder/file browser works inside the shared folder, exactly like a regular drive.
+
+> **Note:** The "Shared Folder (Link)" drive type is supported for all **operational node** actions (download, upload, get, delete, rename, share, folder operations, Excel). It is **not supported for the trigger node** — Microsoft Graph subscriptions require direct drive ownership and do not work with sharing-link access.
 
 ## Credentials
 
@@ -159,6 +162,14 @@ Every operation supports:
 * [OneDrive API Reference](https://learn.microsoft.com/en-us/onedrive/developer/)
 
 ## Version history
+
+### 0.1.12
+- Fixed "Shared Folder (Link)" in trigger: now shows a clear error immediately explaining the Graph API limitation, instead of a confusing "Forbidden" message
+
+### 0.1.11
+- **By Sharing Link** file/folder selection — paste any OneDrive/SharePoint sharing link to access a shared file or folder directly
+- **Shared Folder (Link)** drive type — full 5-level browse, download, upload, get, delete, rename, share, and Excel operations inside a shared folder
+- Upload destination now supports "By Sharing Link" selection mode
 
 ### 0.1.3
 - Added **Excel resource** with Read Rows, Append/Update Row, and Delete Rows operations
