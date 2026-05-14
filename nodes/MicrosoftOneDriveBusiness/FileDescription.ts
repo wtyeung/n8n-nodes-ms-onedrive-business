@@ -370,6 +370,52 @@ export const fileFields: INodeProperties[] = [
 		description: 'The unique ID of the file',
 	},
 	{
+		displayName: 'Output Mode',
+		name: 'outputMode',
+		type: 'options',
+		noDataExpression: true,
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['download'],
+			},
+		},
+		options: [
+			{
+				name: 'Binary Only',
+				value: 'binaryOnly',
+				description: 'Return file as binary data (default behaviour)',
+			},
+			{
+				name: 'Text Only',
+				value: 'textOnly',
+				description: 'Decode file content as UTF-8 text and place it in a JSON field — no binary attachment',
+			},
+			{
+				name: 'Both',
+				value: 'both',
+				description: 'Return both the text content in a JSON field and the binary attachment',
+			},
+		],
+		default: 'binaryOnly',
+		description: 'Binary Only: attach file as binary data (default). Text Only: decode content as UTF-8 text (or base64 for binary files) and place it in a JSON field — no attachment. Both: return text in JSON and binary attachment.',
+	},
+	{
+		displayName: 'Text Field Name',
+		name: 'textFieldName',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['download'],
+				outputMode: ['textOnly', 'both'],
+			},
+		},
+		default: 'data',
+		required: true,
+		description: 'Name of the JSON field where the decoded text content will be stored',
+	},
+	{
 		displayName: 'Binary Property',
 		name: 'binaryPropertyName',
 		type: 'string',
@@ -377,6 +423,7 @@ export const fileFields: INodeProperties[] = [
 			show: {
 				resource: ['file'],
 				operation: ['download'],
+				outputMode: ['binaryOnly', 'both'],
 			},
 		},
 		default: 'data',

@@ -319,7 +319,13 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 
 					if (operation === 'download') {
 						const fileId = await getFileId();
-						const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
+						const outputMode = this.getNodeParameter('outputMode', i, 'binaryOnly') as string;
+						const binaryPropertyName = outputMode !== 'textOnly'
+							? this.getNodeParameter('binaryPropertyName', i) as string
+							: 'data';
+						const textFieldName = outputMode !== 'binaryOnly'
+							? this.getNodeParameter('textFieldName', i, 'data') as string
+							: 'data';
 
 						const fileMetadata = await microsoftApiRequest.call(
 							this,
@@ -340,9 +346,8 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 
 						// Download file content using the download URL (more reliable)
 						let fileBuffer: Buffer;
-						
+
 						if (downloadUrl) {
-							// Use the direct download URL
 							const response = await this.helpers.httpRequest({
 								method: 'GET',
 								url: downloadUrl,
@@ -366,7 +371,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						}
 
 						const newItem: INodeExecutionData = {
-							json: fileMetadata,
+							json: { ...fileMetadata },
 							binary: {},
 						};
 
@@ -374,13 +379,39 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							Object.assign(newItem.binary!, items[i].binary);
 						}
 
-						const data = fileBuffer;
+						if (outputMode === 'textOnly' || outputMode === 'both') {
+							const isTextMime =
+								mimeType.startsWith('text/') ||
+								[
+									'application/json',
+									'application/xml',
+									'application/javascript',
+									'application/x-javascript',
+									'application/yaml',
+									'application/x-yaml',
+									'application/toml',
+									'application/csv',
+								].includes(mimeType);
+							if (isTextMime) {
+								newItem.json[textFieldName] = fileBuffer.toString('utf-8');
+								newItem.json['_textEncoding'] = 'utf-8';
+							} else {
+								newItem.json[textFieldName] = fileBuffer.toString('base64');
+								newItem.json['_textEncoding'] = 'base64';
+							}
+						}
 
-						newItem.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
-							data,
-							fileName as string,
-							mimeType,
-						);
+						if (outputMode === 'binaryOnly' || outputMode === 'both') {
+							newItem.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
+								fileBuffer,
+								fileName,
+								mimeType,
+							);
+						}
+
+						if (outputMode === 'textOnly') {
+							delete newItem.binary;
+						}
 
 						returnData.push(newItem);
 						continue;

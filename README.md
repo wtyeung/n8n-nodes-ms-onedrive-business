@@ -21,7 +21,12 @@ npm install n8n-nodes-ms-onedrive-business
 ### File Operations
 
 - **Upload** — Upload files to OneDrive or SharePoint
-- **Download** — Download files as binary data
+- **Download** — Download files. Supports three output modes:
+  - *Binary Only* (default) — file attached as binary data
+  - *Text Only* — content decoded as UTF-8 text (or base64 for binary files) and placed in a configurable JSON field (e.g. `data`); no binary attachment
+  - *Both* — text in JSON field plus binary attachment
+  
+  A `_textEncoding` field (`"utf-8"` or `"base64"`) is added when using Text Only or Both modes so downstream nodes know how to handle the content.
 - **Get** — Retrieve file metadata
 - **Delete** — Remove files
 - **Rename** — Rename files
@@ -162,6 +167,14 @@ Every operation supports:
 * [OneDrive API Reference](https://learn.microsoft.com/en-us/onedrive/developer/)
 
 ## Version history
+
+### 0.1.14
+- **Download: Text Output mode** — new **Output Mode** option on the Download operation. Choose *Binary Only* (default), *Text Only*, or *Both*. Text mode auto-detects MIME type: text-based files (`.md`, `.txt`, `.csv`, `.json`, `.xml`, etc.) are decoded as UTF-8; binary files (images, PDFs, Office documents) are base64-encoded. A `_textEncoding` field indicates which encoding was used.
+- **Browse dropdowns now reload immediately** when Drive Type changes — `sharedLinkUrl` added to all `loadOptionsDependsOn` arrays
+- **Fix:** Excel browse Level 1 hint added; Excel levels 2–5 now correctly declare `driveType` as a dependency
+
+### 0.1.13
+- README updated with Shared Folder (Link) drive type and By Sharing Link selection mode documentation
 
 ### 0.1.12
 - Fixed "Shared Folder (Link)" in trigger: now shows a clear error immediately explaining the Graph API limitation, instead of a confusing "Forbidden" message
