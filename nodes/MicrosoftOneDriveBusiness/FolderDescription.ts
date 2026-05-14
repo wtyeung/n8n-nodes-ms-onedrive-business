@@ -298,7 +298,8 @@ export const folderFields: INodeProperties[] = [
 		},
 		default: '',
 		required: true,
-		description: 'Select a ▶ folder to go deeper, or select the target folder directly. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+		description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+		hint: 'If you changed Drive Type, click this dropdown once to reload the list',
 	},
 	{
 		displayName: 'Level 2 Name or ID',
