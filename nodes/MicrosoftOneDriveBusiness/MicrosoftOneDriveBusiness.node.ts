@@ -320,10 +320,10 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 					if (operation === 'download') {
 						const fileId = await getFileId();
 						const outputMode = this.getNodeParameter('outputMode', i, 'binaryOnly') as string;
-						const binaryPropertyName = outputMode !== 'textOnly'
+						const binaryPropertyName = (outputMode === 'binaryOnly' || outputMode === 'both')
 							? this.getNodeParameter('binaryPropertyName', i) as string
 							: 'data';
-						const textFieldName = outputMode !== 'binaryOnly'
+						const textFieldName = (outputMode === 'textOnly' || outputMode === 'both' || outputMode === 'textOnlyNoMeta')
 							? this.getNodeParameter('textFieldName', i, 'data') as string
 							: 'data';
 
@@ -371,15 +371,16 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						}
 
 						const newItem: INodeExecutionData = {
-							json: { ...fileMetadata },
+							json: outputMode === 'textOnlyNoMeta' ? {} : { ...fileMetadata },
 							binary: {},
 						};
 
-						if (items[i].binary !== undefined) {
+						if (items[i].binary !== undefined && outputMode !== 'textOnlyNoMeta') {
 							Object.assign(newItem.binary!, items[i].binary);
 						}
 
-						if (outputMode === 'textOnly' || outputMode === 'both') {
+						if (outputMode === 'textOnly' || outputMode === 'both' || outputMode === 'textOnlyNoMeta') {
+							const isJson = mimeType === 'application/json' || fileName.toLowerCase().endsWith('.json');
 							const isTextMime =
 								mimeType.startsWith('text/') ||
 								[
@@ -392,7 +393,16 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 									'application/toml',
 									'application/csv',
 								].includes(mimeType);
-							if (isTextMime) {
+							if (isJson) {
+								const textContent = fileBuffer.toString('utf-8');
+								try {
+									newItem.json[textFieldName] = JSON.parse(textContent) as IDataObject;
+									newItem.json['_textEncoding'] = 'json';
+								} catch {
+									newItem.json[textFieldName] = textContent;
+									newItem.json['_textEncoding'] = 'utf-8';
+								}
+							} else if (isTextMime) {
 								newItem.json[textFieldName] = fileBuffer.toString('utf-8');
 								newItem.json['_textEncoding'] = 'utf-8';
 							} else {
@@ -409,7 +419,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							);
 						}
 
-						if (outputMode === 'textOnly') {
+						if (outputMode === 'textOnly' || outputMode === 'textOnlyNoMeta') {
 							delete newItem.binary;
 						}
 

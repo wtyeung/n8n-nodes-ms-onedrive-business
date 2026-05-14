@@ -389,16 +389,21 @@ export const fileFields: INodeProperties[] = [
 			{
 				name: 'Text Only',
 				value: 'textOnly',
-				description: 'Decode file content as UTF-8 text and place it in a JSON field — no binary attachment',
+				description: 'Place file content in a JSON field — JSON files are parsed into objects, text files as UTF-8 strings, binary files as base64. No binary attachment.',
 			},
 			{
 				name: 'Both',
 				value: 'both',
-				description: 'Return both the text content in a JSON field and the binary attachment',
+				description: 'Place file content in a JSON field (JSON parsed, text as UTF-8, binary as base64) and also attach the binary',
+			},
+			{
+				name: 'Text Only (No Metadata)',
+				value: 'textOnlyNoMeta',
+				description: 'Like Text Only but without file metadata — ideal for AI Agents to save tokens. JSON parsed, text as UTF-8, binary as base64.',
 			},
 		],
 		default: 'binaryOnly',
-		description: 'Binary Only: attach file as binary data (default). Text Only: decode content as UTF-8 text (or base64 for binary files) and place it in a JSON field — no attachment. Both: return text in JSON and binary attachment.',
+		description: 'Binary Only: file as binary attachment (default). Text Only: decode into a JSON field — JSON files are parsed into objects, text files as UTF-8 strings, binary files as base64. Text Only (No Metadata): same as Text Only but without file metadata fields, saving tokens when used with AI Agents. Both: text in JSON field plus binary attachment.',
 	},
 	{
 		displayName: 'Text Field Name',
@@ -408,7 +413,7 @@ export const fileFields: INodeProperties[] = [
 			show: {
 				resource: ['file'],
 				operation: ['download'],
-				outputMode: ['textOnly', 'both'],
+				outputMode: ['textOnly', 'both', 'textOnlyNoMeta'],
 			},
 		},
 		default: 'data',

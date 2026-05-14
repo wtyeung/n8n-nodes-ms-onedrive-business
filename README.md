@@ -21,12 +21,16 @@ npm install n8n-nodes-ms-onedrive-business
 ### File Operations
 
 - **Upload** — Upload files to OneDrive or SharePoint
-- **Download** — Download files. Supports three output modes:
+- **Download** — Download files. Supports four output modes:
   - *Binary Only* (default) — file attached as binary data
-  - *Text Only* — content decoded as UTF-8 text (or base64 for binary files) and placed in a configurable JSON field (e.g. `data`); no binary attachment
+  - *Text Only* — content placed in a configurable JSON field (e.g. `data`); no binary attachment:
+    - `.json` files → parsed into a JSON object
+    - Text files (`.txt`, `.md`, `.csv`, `.xml`, `.yaml`, etc.) → UTF-8 string
+    - Binary files (images, PDFs, Office docs) → base64 string
+  - *Text Only (No Metadata)* — same as Text Only but without OneDrive file metadata fields; ideal when used as a tool with AI Agents to minimise token usage
   - *Both* — text in JSON field plus binary attachment
-  
-  A `_textEncoding` field (`"utf-8"` or `"base64"`) is added when using Text Only or Both modes so downstream nodes know how to handle the content.
+
+  A `_textEncoding` field (`"json"`, `"utf-8"`, or `"base64"`) is always included so downstream nodes know how to handle the content.
 - **Get** — Retrieve file metadata
 - **Delete** — Remove files
 - **Rename** — Rename files
@@ -168,8 +172,13 @@ Every operation supports:
 
 ## Version history
 
+### 0.1.15
+- **Download: Text Only (No Metadata)** mode — outputs only the file content field with no OneDrive metadata; saves tokens when used as an AI Agent tool
+- **Download: JSON auto-parse** — `.json` files are now automatically parsed into JSON objects instead of raw strings
+- `_textEncoding` field now returns `"json"`, `"utf-8"`, or `"base64"`
+
 ### 0.1.14
-- **Download: Text Output mode** — new **Output Mode** option on the Download operation. Choose *Binary Only* (default), *Text Only*, or *Both*. Text mode auto-detects MIME type: text-based files (`.md`, `.txt`, `.csv`, `.json`, `.xml`, etc.) are decoded as UTF-8; binary files (images, PDFs, Office documents) are base64-encoded. A `_textEncoding` field indicates which encoding was used.
+- **Download: Text Output mode** — *Binary Only* (default), *Text Only*, or *Both*. Auto-detects MIME type: text files decoded as UTF-8, binary files as base64. A `_textEncoding` field indicates encoding.
 - **Browse dropdowns now reload immediately** when Drive Type changes — `sharedLinkUrl` added to all `loadOptionsDependsOn` arrays
 - **Fix:** Excel browse Level 1 hint added; Excel levels 2–5 now correctly declare `driveType` as a dependency
 
