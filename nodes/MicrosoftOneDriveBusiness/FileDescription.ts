@@ -218,7 +218,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel1',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl'],
 		},
 		displayOptions: {
 			show: {
@@ -237,7 +237,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel2',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1'],
 		},
 		displayOptions: {
 			show: {
@@ -255,7 +255,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel3',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1', 'browseFolder2'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1', 'browseFolder2'],
 		},
 		displayOptions: {
 			show: {
@@ -273,7 +273,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel4',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1', 'browseFolder2', 'browseFolder3'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1', 'browseFolder2', 'browseFolder3'],
 		},
 		displayOptions: {
 			show: {
@@ -291,7 +291,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel5',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4'],
 		},
 		displayOptions: {
 			show: {
@@ -550,7 +550,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseFolderLevel1',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl'],
 		},
 		displayOptions: {
 			show: {
@@ -569,7 +569,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseFolderLevel2',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolderF1'],
 		},
 		displayOptions: {
 			show: {
@@ -587,7 +587,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseFolderLevel3',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolderF1', 'browseFolderF2'],
 		},
 		displayOptions: {
 			show: {
@@ -605,7 +605,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseFolderLevel4',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3'],
 		},
 		displayOptions: {
 			show: {
@@ -623,7 +623,7 @@ export const fileFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseFolderLevel5',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3', 'browseFolderF4'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolderF1', 'browseFolderF2', 'browseFolderF3', 'browseFolderF4'],
 		},
 		displayOptions: {
 			show: {

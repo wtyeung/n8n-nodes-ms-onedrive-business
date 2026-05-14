@@ -176,7 +176,7 @@ export const excelFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel1',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl'],
 		},
 		displayOptions: {
 			show: {
@@ -194,7 +194,7 @@ export const excelFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel2',
-			loadOptionsDependsOn: ['browseFolder1'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1'],
 		},
 		displayOptions: {
 			show: {
@@ -211,7 +211,7 @@ export const excelFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel3',
-			loadOptionsDependsOn: ['browseFolder2'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1', 'browseFolder2'],
 		},
 		displayOptions: {
 			show: {
@@ -228,7 +228,7 @@ export const excelFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel4',
-			loadOptionsDependsOn: ['browseFolder3'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1', 'browseFolder2', 'browseFolder3'],
 		},
 		displayOptions: {
 			show: {
@@ -245,7 +245,7 @@ export const excelFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getBrowseLevel5',
-			loadOptionsDependsOn: ['browseFolder4'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4'],
 		},
 		displayOptions: {
 			show: {
@@ -321,7 +321,7 @@ export const excelFields: INodeProperties[] = [
 		type: 'options',
 		typeOptions: {
 			loadOptionsMethod: 'getWorksheets',
-			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'fileSelection', 'filePath', 'fileId', 'browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4', 'browseFolder5'],
+			loadOptionsDependsOn: ['driveType', 'userId', 'siteId', 'sharedLinkUrl', 'fileSelection', 'filePath', 'fileId', 'sharingUrl', 'browseFolder1', 'browseFolder2', 'browseFolder3', 'browseFolder4', 'browseFolder5'],
 		},
 		displayOptions: {
 			show: {
