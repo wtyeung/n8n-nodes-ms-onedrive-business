@@ -452,13 +452,14 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 
 					if (operation === 'search') {
 						const query = this.getNodeParameter('query', i) as string;
-						responseData = await microsoftApiRequestAllItems.call(
+						const searchItems = await microsoftApiRequestAllItems.call(
 							this,
 							'value',
 							'GET',
 							`${driveEndpoint}/root/search(q='${query}')`,
-						);
-						responseData = responseData.filter((item: IDataObject) => item.file);
+						) as IDataObject[];
+						returnData.push(...searchItems.filter((item) => item.file).map((item) => ({ json: item })));
+						continue;
 					}
 
 					if (operation === 'share') {
@@ -647,7 +648,9 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 								? `${driveEndpoint}/root/children`
 								: `${driveEndpoint}/items/${folderId}/children`;
 
-						responseData = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint);
+						const allItems = await microsoftApiRequestAllItems.call(this, 'value', 'GET', endpoint) as IDataObject[];
+						returnData.push(...allItems.map((item) => ({ json: item })));
+						continue;
 					}
 
 					if (operation === 'rename') {
@@ -666,13 +669,14 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 
 					if (operation === 'search') {
 						const query = this.getNodeParameter('query', i) as string;
-						responseData = await microsoftApiRequestAllItems.call(
+						const searchItems = await microsoftApiRequestAllItems.call(
 							this,
 							'value',
 							'GET',
 							`${driveEndpoint}/root/search(q='${query}')`,
-						);
-						responseData = responseData.filter((item: IDataObject) => item.folder);
+						) as IDataObject[];
+						returnData.push(...searchItems.filter((item) => item.folder).map((item) => ({ json: item })));
+						continue;
 					}
 
 					if (operation === 'share') {

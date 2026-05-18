@@ -172,6 +172,10 @@ Every operation supports:
 
 ## Version history
 
+### 0.1.16
+- **Fix:** Folder Get Items no longer returns an extra empty item at the end — output items are now correctly wrapped
+- **Fix:** File Search and Folder Search had the same output wrapping bug — now return proper items
+
 ### 0.1.15
 - **Download: Text Only (No Metadata)** mode — outputs only the file content field with no OneDrive metadata; saves tokens when used as an AI Agent tool
 - **Download: JSON auto-parse** — `.json` files are now automatically parsed into JSON objects instead of raw strings
