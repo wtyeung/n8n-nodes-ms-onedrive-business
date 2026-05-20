@@ -28,9 +28,10 @@ npm install n8n-nodes-ms-onedrive-business
     - Text files (`.txt`, `.md`, `.csv`, `.xml`, `.yaml`, etc.) → UTF-8 string
     - Binary files (images, PDFs, Office docs) → base64 string
   - *Text Only (No Metadata)* — same as Text Only but without OneDrive file metadata fields; ideal when used as a tool with AI Agents to minimise token usage
+  - *Markdown From Docx* — converts `.docx` files to Markdown using `mammoth`. Image handling is configurable: **Placeholder** (default — `[Image: filename.ext]`), **Drop**, or **Include (Base64)**. Non-`.docx` files fall back to base64.
   - *Both* — text in JSON field plus binary attachment
 
-  A `_textEncoding` field (`"json"`, `"utf-8"`, or `"base64"`) is always included so downstream nodes know how to handle the content.
+  A `_textEncoding` field (`"json"`, `"utf-8"`, `"base64"`, or `"markdown"`) is always included so downstream nodes know how to handle the content.
 - **Get** — Retrieve file metadata
 - **Delete** — Remove files
 - **Rename** — Rename files
@@ -171,6 +172,10 @@ Every operation supports:
 * [OneDrive API Reference](https://learn.microsoft.com/en-us/onedrive/developer/)
 
 ## Version history
+
+### 0.1.17
+- **New output mode: Markdown From Docx** — converts `.docx` files to Markdown using `mammoth`; non-`.docx` files fall back to base64
+- **New parameter: Docx-to-Markdown: Image Handling** — Placeholder (default), Drop, or Include (Base64); prevents base64 images from flooding AI Agent context windows
 
 ### 0.1.16
 - **Fix:** Folder Get Items no longer returns an extra empty item at the end — output items are now correctly wrapped

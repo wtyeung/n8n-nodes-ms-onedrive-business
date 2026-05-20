@@ -387,14 +387,19 @@ export const fileFields: INodeProperties[] = [
 				description: 'Return file as binary data (default behaviour)',
 			},
 			{
-				name: 'Text Only',
-				value: 'textOnly',
-				description: 'Place file content in a JSON field — JSON files are parsed into objects, text files as UTF-8 strings, binary files as base64. No binary attachment.',
-			},
-			{
 				name: 'Both',
 				value: 'both',
 				description: 'Place file content in a JSON field (JSON parsed, text as UTF-8, binary as base64) and also attach the binary',
+			},
+			{
+				name: 'Markdown From Docx',
+				value: 'markdownDocx',
+				description: 'Convert a .docx file to Markdown text and place it in a JSON field. Non-.docx files fall back to base64.',
+			},
+			{
+				name: 'Text Only',
+				value: 'textOnly',
+				description: 'Place file content in a JSON field — JSON files are parsed into objects, text files as UTF-8 strings, binary files as base64. No binary attachment.',
 			},
 			{
 				name: 'Text Only (No Metadata)',
@@ -403,7 +408,38 @@ export const fileFields: INodeProperties[] = [
 			},
 		],
 		default: 'binaryOnly',
-		description: 'Binary Only: file as binary attachment (default). Text Only: decode into a JSON field — JSON files are parsed into objects, text files as UTF-8 strings, binary files as base64. Text Only (No Metadata): same as Text Only but without file metadata fields, saving tokens when used with AI Agents. Both: text in JSON field plus binary attachment.',
+		description: 'Binary Only: file as binary attachment (default). Text Only: decode into a JSON field — JSON files are parsed into objects, text files as UTF-8 strings, binary files as base64. Text Only (No Metadata): same as Text Only but without file metadata fields, saving tokens when used with AI Agents. Markdown (from .docx): convert Word documents to Markdown. Both: text in JSON field plus binary attachment.',
+	},
+	{
+		displayName: 'Docx-to-Markdown: Image Handling',
+		name: 'imageHandling',
+		type: 'options',
+		displayOptions: {
+			show: {
+				resource: ['file'],
+				operation: ['download'],
+				outputMode: ['markdownDocx'],
+			},
+		},
+		options: [
+			{
+				name: 'Drop',
+				value: 'drop',
+				description: 'Remove all images from the output',
+			},
+			{
+				name: 'Include (Base64)',
+				value: 'include',
+				description: 'Include images as base64 data URIs — may produce very large output',
+			},
+			{
+				name: 'Placeholder',
+				value: 'placeholder',
+				description: 'Replace each image with a short text placeholder, e.g. [Image: figure1.png]',
+			},
+		],
+		default: 'placeholder',
+		description: 'How to handle embedded images when converting a .docx file to Markdown',
 	},
 	{
 		displayName: 'Text Field Name',
@@ -413,7 +449,7 @@ export const fileFields: INodeProperties[] = [
 			show: {
 				resource: ['file'],
 				operation: ['download'],
-				outputMode: ['textOnly', 'both', 'textOnlyNoMeta'],
+				outputMode: ['textOnly', 'both', 'textOnlyNoMeta', 'markdownDocx'],
 			},
 		},
 		default: 'data',

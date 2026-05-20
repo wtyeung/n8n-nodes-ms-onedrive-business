@@ -14,6 +14,7 @@ import { fileFields, fileOperations } from './FileDescription';
 import { folderFields, folderOperations } from './FolderDescription';
 import { excelFields, excelOperations } from './ExcelDescription';
 import { getMimeType, microsoftApiRequest, microsoftApiRequestAllItems } from './GenericFunctions';
+import mammoth from 'mammoth';
 
 async function getDriveEndpointForLoadOptions(this: ILoadOptionsFunctions): Promise<string> {
 	const driveType = this.getNodeParameter('driveType', 0) as string;
@@ -323,7 +324,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 						const binaryPropertyName = (outputMode === 'binaryOnly' || outputMode === 'both')
 							? this.getNodeParameter('binaryPropertyName', i) as string
 							: 'data';
-						const textFieldName = (outputMode === 'textOnly' || outputMode === 'both' || outputMode === 'textOnlyNoMeta')
+						const textFieldName = (outputMode === 'textOnly' || outputMode === 'both' || outputMode === 'textOnlyNoMeta' || outputMode === 'markdownDocx')
 							? this.getNodeParameter('textFieldName', i, 'data') as string
 							: 'data';
 
@@ -370,12 +371,13 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							fileBuffer = Buffer.isBuffer(response) ? response : Buffer.from(response as ArrayBuffer);
 						}
 
+						const noMetaMode = outputMode === 'textOnlyNoMeta' || outputMode === 'markdownDocx';
 						const newItem: INodeExecutionData = {
-							json: outputMode === 'textOnlyNoMeta' ? {} : { ...fileMetadata },
+							json: noMetaMode ? {} : { ...fileMetadata },
 							binary: {},
 						};
 
-						if (items[i].binary !== undefined && outputMode !== 'textOnlyNoMeta') {
+						if (items[i].binary !== undefined && !noMetaMode) {
 							Object.assign(newItem.binary!, items[i].binary);
 						}
 
@@ -411,6 +413,37 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							}
 						}
 
+						if (outputMode === 'markdownDocx') {
+							const isDocx = mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.toLowerCase().endsWith('.docx');
+							if (isDocx) {
+								const imageHandling = this.getNodeParameter('imageHandling', i, 'placeholder') as string;
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
+								const convertImage = mammoth.images.imgElement(async (image: any) => {
+									if (imageHandling === 'drop') {
+										return { src: '' };
+									} else if (imageHandling === 'placeholder') {
+										const ext = (image.contentType as string || 'image/png').split('/')[1] ?? 'png';
+										const imgCounter = (newItem.json['_imageCount'] as number ?? 0) + 1;
+										newItem.json['_imageCount'] = imgCounter;
+										return { src: '', alt: `[Image: image${imgCounter}.${ext}]` };
+									}
+									const buffer = await image.read() as Buffer;
+									return { src: `data:${image.contentType};base64,${buffer.toString('base64')}` };
+								});
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
+								const result = await (mammoth as any).convertToMarkdown({ buffer: fileBuffer, convertImage }) as { value: string };
+								if (imageHandling !== 'include') {
+									delete newItem.json['_imageCount'];
+								}
+								newItem.json[textFieldName] = result.value;
+								newItem.json['_textEncoding'] = 'markdown';
+							} else {
+								newItem.json[textFieldName] = fileBuffer.toString('base64');
+								newItem.json['_textEncoding'] = 'base64';
+							}
+							delete newItem.binary;
+						}
+
 						if (outputMode === 'binaryOnly' || outputMode === 'both') {
 							newItem.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
 								fileBuffer,
@@ -419,7 +452,7 @@ export class MicrosoftOneDriveBusiness implements INodeType {
 							);
 						}
 
-						if (outputMode === 'textOnly' || outputMode === 'textOnlyNoMeta') {
+						if (outputMode === 'textOnly' || outputMode === 'textOnlyNoMeta' || outputMode === 'markdownDocx') {
 							delete newItem.binary;
 						}
 

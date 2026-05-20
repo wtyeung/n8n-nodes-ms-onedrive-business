@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-ms-onedrive-business",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "n8n node for Microsoft OneDrive Business with support for user drives and SharePoint site drives",
   "license": "MIT",
   "homepage": "https://github.com/timyeung/n8n-nodes-ms-onedrive-business",
@@ -52,5 +52,8 @@
   },
   "peerDependencies": {
     "n8n-workflow": "*"
+  },
+  "dependencies": {
+    "mammoth": "^1.12.0"
   }
 }
